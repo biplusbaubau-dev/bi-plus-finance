@@ -1,0 +1,6 @@
+import "./globals.css";
+import Link from "next/link";
+import type { Metadata } from "next";
+export const metadata: Metadata = { title: "BI+ Finance", description: "Keuangan dan inventory BI+" };
+const links = [["/", "Dashboard"], ["/inventory", "Inventory"], ["/transactions", "Transaksi"], ["/cashflow", "Cashflow"], ["/reports", "Laporan"], ["/settings", "Pengaturan"]];
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="id"><body><div className="mx-auto min-h-screen max-w-7xl px-4 pb-24 sm:px-6"><header className="flex items-center justify-between py-5"><Link href="/" className="text-xl font-black tracking-tight">BI<span className="text-zinc-400">+</span> Finance</Link><span className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white">Internal</span></header><main>{children}</main><nav className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 px-2 py-2 backdrop-blur"><div className="mx-auto flex max-w-2xl justify-around">{links.map(([href, label]) => <Link key={href} href={href} className="rounded-lg px-2 py-2 text-center text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 sm:px-4">{label}</Link>)}</div></nav></div></body></html>; }

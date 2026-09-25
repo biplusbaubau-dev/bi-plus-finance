@@ -1,0 +1,582 @@
+{
+  "timestamp": "2026-09-24T19:43:09.904769",
+  "tables": {
+    "CashTransaction": {
+      "columns": [
+        "id",
+        "date",
+        "type",
+        "description",
+        "income",
+        "expense",
+        "paymentMethod",
+        "purchaseId",
+        "saleId",
+        "expenseId",
+        "otherIncomeId",
+        "createdAt",
+        "installmentId"
+      ],
+      "count": 11,
+      "data": [
+        {
+          "id": "cmuegjymu0004uhw89r10ym4y",
+          "date": "2026-08-01T08:00:00",
+          "type": "PURCHASE",
+          "description": "Beli iPhone 11 64GB",
+          "income": 0,
+          "expense": 2450000,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": "cmuegjyml0002uhw8ca4b0ked",
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.862000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjyoz000iuhw81uchln15",
+          "date": "2026-08-04T08:00:00",
+          "type": "PURCHASE",
+          "description": "Beli iPhone 11 128GB",
+          "income": 0,
+          "expense": 2925000,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": "cmuegjyou000auhw8wc4rzciz",
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.940000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjyp2000kuhw89lay8roa",
+          "date": "2026-08-10T08:00:00",
+          "type": "PURCHASE",
+          "description": "Beli iPhone 11 64GB",
+          "income": 0,
+          "expense": 2500000,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": "cmuegjyox000cuhw8z5l60sfh",
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.942000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjyp4000muhw87vzkx51o",
+          "date": "2026-08-07T08:00:00",
+          "type": "PURCHASE",
+          "description": "Beli iPhone XR 64GB",
+          "income": 0,
+          "expense": 1950000,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": "cmuegjyoz000guhw8wdcxmpao",
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.944000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjyp6000ouhw84ndfn3ki",
+          "date": "2026-08-12T08:00:00",
+          "type": "PURCHASE",
+          "description": "Beli iPhone 12 64GB",
+          "income": 0,
+          "expense": 3350000,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": "cmuegjyoy000euhw8t443pj6v",
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.946000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjypn000suhw87z4ovg7s",
+          "date": "2026-08-15T08:00:00",
+          "type": "SALE",
+          "description": "Penjualan INV-20260815-BI-001",
+          "income": 2975000,
+          "expense": 0,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": null,
+          "saleId": "cmuegjypi000quhw8zsn1wjxu",
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.964000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjypu000wuhw8hb8k8904",
+          "date": "2026-08-21T08:00:00",
+          "type": "SALE",
+          "description": "Penjualan INV-20260821-BI-003",
+          "income": 2485000,
+          "expense": 0,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": null,
+          "saleId": "cmuegjyps000uuhw8yjkpl3pr",
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.971000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjyq0000zuhw8qca6gt5c",
+          "date": "2026-08-22T08:00:00",
+          "type": "EXPENSE",
+          "description": "Iklan Instagram",
+          "income": 0,
+          "expense": 150000,
+          "paymentMethod": "EWALLET",
+          "purchaseId": null,
+          "saleId": null,
+          "expenseId": "cmuegjypx000xuhw8gukgft3n",
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:50:11.977000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegjyq60012uhw83lj54e9h",
+          "date": "2026-08-24T08:00:00",
+          "type": "OTHER_INCOME",
+          "description": "Penjualan accessories",
+          "income": 125000,
+          "expense": 0,
+          "paymentMethod": "CASH",
+          "purchaseId": null,
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": "cmuegjyq30010uhw8wsxg3zue",
+          "createdAt": "2026-09-23T18:50:11.982000",
+          "installmentId": null
+        },
+        {
+          "id": "cmuegqh2x0004uhxg20x2mz07",
+          "date": "2026-09-24T00:00:00",
+          "type": "PURCHASE",
+          "description": "Beli iPhone 11 64gb (VM4H1)",
+          "income": 0,
+          "expense": 1850000,
+          "paymentMethod": "PAYLATER",
+          "purchaseId": "cmuegqh2u0002uhxg6zknavk4",
+          "saleId": null,
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T18:55:15.706000",
+          "installmentId": null
+        },
+        {
+          "id": "cmueh540c0003uh14mefsl0u5",
+          "date": "2026-09-24T00:00:00",
+          "type": "SALE",
+          "description": "Penjualan iPhone 11 (BI-002)",
+          "income": 2550000,
+          "expense": 0,
+          "paymentMethod": "TRANSFER",
+          "purchaseId": null,
+          "saleId": "cmueh54090001uh14zs6i4lmc",
+          "expenseId": null,
+          "otherIncomeId": null,
+          "createdAt": "2026-09-23T19:06:38.604000",
+          "installmentId": null
+        }
+      ]
+    },
+    "Expense": {
+      "columns": [
+        "id",
+        "date",
+        "category",
+        "amount",
+        "paymentMethod",
+        "description",
+        "notes",
+        "createdAt"
+      ],
+      "count": 1,
+      "data": [
+        {
+          "id": "cmuegjypx000xuhw8gukgft3n",
+          "date": "2026-08-22T08:00:00",
+          "category": "MARKETING",
+          "amount": 150000,
+          "paymentMethod": "EWALLET",
+          "description": "Iklan Instagram",
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.973000"
+        }
+      ]
+    },
+    "InventoryItem": {
+      "columns": [
+        "id",
+        "code",
+        "imei",
+        "brand",
+        "model",
+        "storage",
+        "color",
+        "batteryHealth",
+        "condition",
+        "status",
+        "purchaseDate",
+        "supplier",
+        "purchasePrice",
+        "additionalCost",
+        "askingPrice",
+        "notes",
+        "createdAt",
+        "updatedAt",
+        "userId"
+      ],
+      "count": 6,
+      "data": [
+        {
+          "id": "cmuegjyor0006uhw8j2fye7a3",
+          "code": "BI-004",
+          "imei": "356938035643812",
+          "brand": "Apple",
+          "model": "iPhone 11",
+          "storage": "64GB",
+          "color": "Black",
+          "batteryHealth": 88,
+          "condition": "Excellent",
+          "status": "IN_STOCK",
+          "purchaseDate": "2026-08-10T08:00:00",
+          "supplier": "Andi",
+          "purchasePrice": 2450000,
+          "additionalCost": 50000,
+          "askingPrice": 3100000,
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.850000",
+          "updatedAt": "2026-09-23T18:50:11.850000",
+          "userId": null
+        },
+        {
+          "id": "cmuegjyot0007uhw8bhayetw9",
+          "code": "BI-005",
+          "imei": "356938035643813",
+          "brand": "Apple",
+          "model": "iPhone 12",
+          "storage": "64GB",
+          "color": "Blue",
+          "batteryHealth": 87,
+          "condition": "Good",
+          "status": "IN_STOCK",
+          "purchaseDate": "2026-08-12T08:00:00",
+          "supplier": "Raka",
+          "purchasePrice": 3250000,
+          "additionalCost": 100000,
+          "askingPrice": 4050000,
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.850000",
+          "updatedAt": "2026-09-23T18:50:11.850000",
+          "userId": null
+        },
+        {
+          "id": "cmuegjymh0000uhw8rnh38gcz",
+          "code": "BI-001",
+          "imei": "356938035643809",
+          "brand": "Apple",
+          "model": "iPhone 11",
+          "storage": "64GB",
+          "color": "Purple",
+          "batteryHealth": 86,
+          "condition": "Good",
+          "status": "SOLD",
+          "purchaseDate": "2026-08-01T08:00:00",
+          "supplier": "Andi",
+          "purchasePrice": 2400000,
+          "additionalCost": 50000,
+          "askingPrice": 3000000,
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.849000",
+          "updatedAt": "2026-09-23T18:50:11.951000",
+          "userId": null
+        },
+        {
+          "id": "cmuegjyou0008uhw8uky71d9x",
+          "code": "BI-003",
+          "imei": "356938035643811",
+          "brand": "Apple",
+          "model": "iPhone XR",
+          "storage": "64GB",
+          "color": "Black",
+          "batteryHealth": 84,
+          "condition": "Good",
+          "status": "SOLD",
+          "purchaseDate": "2026-08-07T08:00:00",
+          "supplier": "Mira",
+          "purchasePrice": 1900000,
+          "additionalCost": 50000,
+          "askingPrice": 2500000,
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.849000",
+          "updatedAt": "2026-09-23T18:50:11.967000",
+          "userId": null
+        },
+        {
+          "id": "cmuegqh2n0000uhxg0qt40lan",
+          "code": "VM4H1",
+          "imei": null,
+          "brand": "Apple",
+          "model": "iPhone 11",
+          "storage": "64gb",
+          "color": "Putih",
+          "batteryHealth": 100,
+          "condition": "Baik",
+          "status": "IN_STOCK",
+          "purchaseDate": "2026-09-24T00:00:00",
+          "supplier": "Shopee",
+          "purchasePrice": 1850000,
+          "additionalCost": 0,
+          "askingPrice": 2600000,
+          "notes": "ok",
+          "createdAt": "2026-09-23T18:55:15.695000",
+          "updatedAt": "2026-09-23T19:05:50.584000",
+          "userId": null
+        },
+        {
+          "id": "cmuegjyoi0005uhw83p2qo8g4",
+          "code": "BI-002",
+          "imei": "356938035643810",
+          "brand": "Apple",
+          "model": "iPhone 11",
+          "storage": "128GB",
+          "color": "White",
+          "batteryHealth": 89,
+          "condition": "Good",
+          "status": "SOLD",
+          "purchaseDate": "2026-08-04T08:00:00",
+          "supplier": "Raka",
+          "purchasePrice": 2850000,
+          "additionalCost": 75000,
+          "askingPrice": 3450000,
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.849000",
+          "updatedAt": "2026-09-23T19:06:38.597000",
+          "userId": null
+        }
+      ]
+    },
+    "OtherIncome": {
+      "columns": [
+        "id",
+        "date",
+        "source",
+        "amount",
+        "paymentMethod",
+        "notes",
+        "createdAt"
+      ],
+      "count": 1,
+      "data": [
+        {
+          "id": "cmuegjyq30010uhw8wsxg3zue",
+          "date": "2026-08-24T08:00:00",
+          "source": "Penjualan accessories",
+          "amount": 125000,
+          "paymentMethod": "CASH",
+          "notes": null,
+          "createdAt": "2026-09-23T18:50:11.979000"
+        }
+      ]
+    },
+    "PayLaterDebt": {
+      "columns": [
+        "id",
+        "code",
+        "totalLiability",
+        "tenorMonths",
+        "startDate",
+        "purchaseId",
+        "createdAt"
+      ],
+      "count": 0,
+      "data": []
+    },
+    "PayLaterInstallment": {
+      "columns": [
+        "id",
+        "debtId",
+        "installmentNo",
+        "dueDate",
+        "amount",
+        "status",
+        "paidAt"
+      ],
+      "count": 0,
+      "data": []
+    },
+    "Purchase": {
+      "columns": [
+        "id",
+        "date",
+        "supplier",
+        "paymentMethod",
+        "notes",
+        "inventoryItemId",
+        "createdAt"
+      ],
+      "count": 6,
+      "data": [
+        {
+          "id": "cmuegjyml0002uhw8ca4b0ked",
+          "date": "2026-08-01T08:00:00",
+          "supplier": "Andi",
+          "paymentMethod": "TRANSFER",
+          "notes": null,
+          "inventoryItemId": "cmuegjymh0000uhw8rnh38gcz",
+          "createdAt": "2026-09-23T18:50:11.854000"
+        },
+        {
+          "id": "cmuegjyou000auhw8wc4rzciz",
+          "date": "2026-08-04T08:00:00",
+          "supplier": "Raka",
+          "paymentMethod": "TRANSFER",
+          "notes": null,
+          "inventoryItemId": "cmuegjyoi0005uhw83p2qo8g4",
+          "createdAt": "2026-09-23T18:50:11.935000"
+        },
+        {
+          "id": "cmuegjyox000cuhw8z5l60sfh",
+          "date": "2026-08-10T08:00:00",
+          "supplier": "Andi",
+          "paymentMethod": "TRANSFER",
+          "notes": null,
+          "inventoryItemId": "cmuegjyor0006uhw8j2fye7a3",
+          "createdAt": "2026-09-23T18:50:11.938000"
+        },
+        {
+          "id": "cmuegjyoy000euhw8t443pj6v",
+          "date": "2026-08-12T08:00:00",
+          "supplier": "Raka",
+          "paymentMethod": "TRANSFER",
+          "notes": null,
+          "inventoryItemId": "cmuegjyot0007uhw8bhayetw9",
+          "createdAt": "2026-09-23T18:50:11.938000"
+        },
+        {
+          "id": "cmuegjyoz000guhw8wdcxmpao",
+          "date": "2026-08-07T08:00:00",
+          "supplier": "Mira",
+          "paymentMethod": "TRANSFER",
+          "notes": null,
+          "inventoryItemId": "cmuegjyou0008uhw8uky71d9x",
+          "createdAt": "2026-09-23T18:50:11.939000"
+        },
+        {
+          "id": "cmuegqh2u0002uhxg6zknavk4",
+          "date": "2026-09-24T00:00:00",
+          "supplier": "Shopee",
+          "paymentMethod": "PAYLATER",
+          "notes": "ok",
+          "inventoryItemId": "cmuegqh2n0000uhxg0qt40lan",
+          "createdAt": "2026-09-23T18:55:15.702000"
+        }
+      ]
+    },
+    "Sale": {
+      "columns": [
+        "id",
+        "invoiceNo",
+        "date",
+        "salePrice",
+        "sellingCost",
+        "paymentMethod",
+        "customerName",
+        "notes",
+        "inventoryItemId",
+        "createdAt"
+      ],
+      "count": 3,
+      "data": [
+        {
+          "id": "cmuegjypi000quhw8zsn1wjxu",
+          "invoiceNo": "INV-20260815-BI-001",
+          "date": "2026-08-15T08:00:00",
+          "salePrice": 3000000,
+          "sellingCost": 25000,
+          "paymentMethod": "TRANSFER",
+          "customerName": "Dimas",
+          "notes": null,
+          "inventoryItemId": "cmuegjymh0000uhw8rnh38gcz",
+          "createdAt": "2026-09-23T18:50:11.958000"
+        },
+        {
+          "id": "cmuegjyps000uuhw8yjkpl3pr",
+          "invoiceNo": "INV-20260821-BI-003",
+          "date": "2026-08-21T08:00:00",
+          "salePrice": 2500000,
+          "sellingCost": 15000,
+          "paymentMethod": "TRANSFER",
+          "customerName": "Nadia",
+          "notes": null,
+          "inventoryItemId": "cmuegjyou0008uhw8uky71d9x",
+          "createdAt": "2026-09-23T18:50:11.969000"
+        },
+        {
+          "id": "cmueh54090001uh14zs6i4lmc",
+          "invoiceNo": "INV-260923-669",
+          "date": "2026-09-24T00:00:00",
+          "salePrice": 2550000,
+          "sellingCost": 0,
+          "paymentMethod": "TRANSFER",
+          "customerName": "Ridwan",
+          "notes": "2",
+          "inventoryItemId": "cmuegjyoi0005uhw83p2qo8g4",
+          "createdAt": "2026-09-23T19:06:38.601000"
+        }
+      ]
+    },
+    "User": {
+      "columns": [
+        "id",
+        "name",
+        "email",
+        "createdAt"
+      ],
+      "count": 0,
+      "data": []
+    },
+    "_prisma_migrations": {
+      "columns": [
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+      ],
+      "count": 2,
+      "data": [
+        {
+          "id": "236d0a16-bce2-4109-86ef-eccacb98768c",
+          "checksum": "0661c8d6ca1a761520b6ec9e76e1457b70b2d3315fdd58c08799c3d25a6cbe44",
+          "finished_at": "2026-09-24T02:49:49.747436+08:00",
+          "migration_name": "20260923184949_init",
+          "logs": null,
+          "rolled_back_at": null,
+          "started_at": "2026-09-24T02:49:49.656654+08:00",
+          "applied_steps_count": 1
+        },
+        {
+          "id": "756c9fee-8c48-40b1-b973-f6a8b44b664a",
+          "checksum": "e353815d904e650c73f158ea2fa7a783431168260996f10f4d355f6ea25c6e22",
+          "finished_at": "2026-09-24T03:04:27.930652+08:00",
+          "migration_name": "20260923190427_add_paylater_and_inventory_edit",
+          "logs": null,
+          "rolled_back_at": null,
+          "started_at": "2026-09-24T03:04:27.881398+08:00",
+          "applied_steps_count": 1
+        }
+      ]
+    }
+  }
+}

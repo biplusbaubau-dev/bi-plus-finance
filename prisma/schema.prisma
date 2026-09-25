@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InventoryStatus {
+  IN_STOCK
+  SOLD
+  RESERVED
+  RETURNED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  EWALLET
+  PAYLATER
+  OTHER
+}
+
+enum CashTransactionType {
+  SALE
+  PURCHASE
+  EXPENSE
+  OTHER_INCOME
+  PAYLATER_PAYMENT
+}
+
+enum ExpenseCategory {
+  OPERATIONAL
+  TRANSPORT
+  PACKAGING
+  MARKETING
+  ADMIN
+  INTERNET
+  EQUIPMENT
+  OTHER
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  createdAt      DateTime        @default(now())
+  inventoryItems InventoryItem[]
+}
+
+model InventoryItem {
+  id               String          @id @default(cuid())
+  code             String          @unique
+  imei             String?         @unique
+  brand            String          @default("Apple")
+  model            String
+  storage          String
+  color            String
+  batteryHealth    Int?
+  condition        String
+  status           InventoryStatus @default(IN_STOCK)
+  purchaseDate     DateTime
+  supplier         String?
+  purchasePrice    Int
+  additionalCost   Int             @default(0)
+  askingPrice      Int?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  purchase         Purchase?
+  sale             Sale?
+  images          UnitImage[]
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
+
+  @@index([status, purchaseDate])
+}
+
+model Purchase {
+  id              String          @id @default(cuid())
+  date            DateTime
+  supplier        String?
+  paymentMethod   PaymentMethod
+  notes           String?
+  inventoryItemId String          @unique
+  inventoryItem   InventoryItem   @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  cashTransaction CashTransaction?
+  payLaterDebt    PayLaterDebt?
+  createdAt       DateTime        @default(now())
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+}
+
+model PayLaterDebt {
+  id              String                @id @default(cuid())
+  code            String                @unique
+  totalLiability  Int
+  tenorMonths     Int
+  startDate       DateTime
+  purchaseId      String?               @unique
+  purchase        Purchase?             @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  accessoryId     String?
+  accessory       Accessory?            @relation(fields: [accessoryId], references: [id], onDelete: Cascade)
+  installments    PayLaterInstallment[]
+  createdAt       DateTime              @default(now())
+
+  @@index([startDate])
+}
+
+model PayLaterInstallment {
+  id              String            @id @default(cuid())
+  debtId          String
+  installmentNo   Int
+  dueDate         DateTime
+  amount          Int
+  status          InstallmentStatus @default(PENDING)
+  paidAt          DateTime?
+  debt            PayLaterDebt      @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  cashTransaction CashTransaction?
+
+  @@unique([debtId, installmentNo])
+  @@index([dueDate, status])
+}
+
+model Sale {
+  id              String          @id @default(cuid())
+  invoiceNo       String          @unique
+  date            DateTime
+  salePrice       Int
+  sellingCost     Int             @default(0)
+  paymentMethod   PaymentMethod
+  customerName    String?
+  notes           String?
+  inventoryItemId String          @unique
+  inventoryItem   InventoryItem   @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  cashTransaction CashTransaction?
+  createdAt       DateTime        @default(now())
+}
+
+model Expense {
+  id              String          @id @default(cuid())
+  date            DateTime
+  category        ExpenseCategory
+  amount          Int
+  paymentMethod   PaymentMethod
+  description     String
+  notes           String?
+  cashTransaction CashTransaction?
+  createdAt       DateTime        @default(now())
+
+  @@index([date, category])
+}
+
+model OtherIncome {
+  id              String          @id @default(cuid())
+  date            DateTime
+  source          String
+  amount          Int
+  paymentMethod   PaymentMethod
+  notes           String?
+  cashTransaction CashTransaction?
+  createdAt       DateTime        @default(now())
+}
+
+model CashTransaction {
+  id            String              @id @default(cuid())
+  date          DateTime
+  type          CashTransactionType
+  description   String
+  income        Int                 @default(0)
+  expense       Int                 @default(0)
+  paymentMethod PaymentMethod
+  purchaseId    String?             @unique
+  saleId        String?             @unique
+  expenseId     String?             @unique
+  otherIncomeId String?             @unique
+  installmentId String?             @unique
+  purchase      Purchase?           @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  sale          Sale?               @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  expenseRecord Expense?            @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  otherIncome   OtherIncome?        @relation(fields: [otherIncomeId], references: [id], onDelete: Cascade)
+  installment   PayLaterInstallment? @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+
+  @@index([date, type])
+}
+
+model UnitImage {
+  id              String   @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  filename        String
+  originalName    String
+  mimeType        String
+  size            Int
+  caption         String?
+  uploadedAt      DateTime @default(now())
+
+  @@index([inventoryItemId])
+}
+
+model Accessory {
+  id            String   @id @default(cuid())
+  name          String
+  category      String
+  stock         Int      @default(0)
+  purchasePrice Int      @default(0)
+  sellingPrice  Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  transactions  AccessoryTransaction[]
+  payLaterDebts PayLaterDebt[]
+}
+
+model AccessoryTransaction {
+  id          String            @id @default(cuid())
+  accessoryId String
+  accessory   Accessory         @relation(fields: [accessoryId], references: [id], onDelete: Cascade)
+  type        AccessoryTrxType
+  quantity    Int
+  unitPrice   Int
+  totalPrice  Int
+  paymentMethod PaymentMethod
+  description String?
+  createdAt   DateTime          @default(now())
+
+  @@index([accessoryId])
+}
+
+enum AccessoryTrxType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+}

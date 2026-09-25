@@ -1,0 +1,4 @@
+"use client";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { rupiah } from "@/lib/format";
+export function MonthlyChart({ data }: { data: { month: string; omzet: number; profit: number; cashflow: number }[] }) { return <div className="h-64"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{ top: 10, right: 8, left: 8 }}><XAxis dataKey="month" tick={{ fontSize: 11 }} /><YAxis tickFormatter={(v) => `${Math.round(v / 1000000)}jt`} tick={{ fontSize: 11 }} width={40} /><Tooltip formatter={(value) => rupiah(Number(value))} /><Legend wrapperStyle={{ fontSize: 12 }} /><Line type="monotone" dataKey="omzet" name="Omzet" stroke="#18181b" strokeWidth={2} /><Line type="monotone" dataKey="profit" name="Profit" stroke="#16a34a" strokeWidth={2} /><Line type="monotone" dataKey="cashflow" name="Cashflow" stroke="#2563eb" strokeWidth={2} /></LineChart></ResponsiveContainer></div>; }
