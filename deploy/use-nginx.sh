@@ -66,7 +66,7 @@ docker compose up -d db migrate app
 log "Menunggu app siap"
 READY=0
 for i in $(seq 1 40); do
-  CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/ || echo 000)"
+  CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/ || echo GAGAL)"
   if [ "$CODE" = "200" ]; then READY=1; ok "App merespons 200"; break; fi
   sleep 5
 done
@@ -200,8 +200,8 @@ systemctl reload nginx && ok "nginx direload"
 # ==========================================================
 log "Verifikasi"
 echo "  app lokal     : $(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:3000/)"
-echo "  https (tanpa auth) : $(curl -s -k -o /dev/null -w '%{http_code}' --max-time 25 "https://$DOMAIN/" || echo 000)  (401 = login aktif, benar)"
-echo "  https (dengan auth): $(curl -s -k -o /dev/null -w '%{http_code}' --max-time 25 -u "$BASIC_USER:$(grep -oP "Password web : \K.*" /root/biplus-credentials.txt | tail -1)" "https://$DOMAIN/" || echo 000)"
+echo "  https (tanpa auth) : $(curl -s -k -o /dev/null -w '%{http_code}' --max-time 25 "https://$DOMAIN/" || echo 'GAGAL')  (401 = login aktif, benar)"
+echo "  https (dengan auth): $(curl -s -k -o /dev/null -w '%{http_code}' --max-time 25 -u "$BASIC_USER:$(grep -oP "Password web : \K.*" /root/biplus-credentials.txt | tail -1)" "https://$DOMAIN/" || echo GAGAL)"
 echo
 echo "  Cek manual dengan password asli:"
 echo "    curl -k -u $BASIC_USER 'https://$DOMAIN/' -I"

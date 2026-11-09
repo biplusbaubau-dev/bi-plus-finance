@@ -155,10 +155,10 @@ docker compose logs --tail=30 caddy || true
 # ==========================================================
 DOMAIN="$(grep -E '^APP_DOMAIN=' .env 2>/dev/null | cut -d= -f2- || true)"
 log "Verifikasi"
-echo "  app internal : $(curl -s -o /dev/null -w '%{http_code}' --max-time 20 http://127.0.0.1:3000/ || echo 000)"
+echo "  app internal : $(curl -s -o /dev/null -w '%{http_code}' --max-time 20 http://127.0.0.1:3000/ || echo 'GAGAL')
 if [ -n "${DOMAIN:-}" ]; then
-  echo "  http  ://$DOMAIN -> $(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "http://$DOMAIN/" || echo 000)"
-  echo "  https ://$DOMAIN -> $(curl -s -k -o /dev/null -w '%{http_code}' --max-time 30 "https://$DOMAIN/" || echo 000)"
+  echo "  http  ://$DOMAIN -> $(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "http://$DOMAIN/" || echo 'GAGAL')
+  echo "  https ://$DOMAIN -> $(curl -s -k -o /dev/null -w '%{http_code}' --max-time 30 "https://$DOMAIN/" || echo 'GAGAL')
   echo
   echo "  Catatan: sertifikat Let's Encrypt butuh ~30-60 detik pada percobaan pertama."
   echo "  Pantau: docker compose logs -f caddy"

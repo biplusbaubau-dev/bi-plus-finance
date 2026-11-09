@@ -284,7 +284,10 @@ fi
 # ==========================================================
 DOMAIN_FINAL="$(grep -E '^APP_DOMAIN=' "$ENV_FILE" | cut -d= -f2-)"
 log "Memeriksa kesehatan aplikasi"
-HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "http://127.0.0.1:3000/" || echo 000)"
+# CATATAN: `expose: 3000` TIDAK mem-publish port ke host, jadi tes dari
+# host SELALU gagal. Uji lewat container caddy (lihat deploy/diagnose.sh).
+HTTP_CODE="$(docker compose exec -T caddy wget -q -O- -T 10 --server-response http://app:3000/ 2>&1 | awk '/HTTP\//{c=$2} END{print c+0}' || true)"
+[ "${HTTP_CODE:-0}" -eq 0 ] && HTTP_CODE="?"
 echo "  app internal :3000 -> HTTP $HTTP_CODE"
 docker compose ps --format '{{.Service}} => {{.State}}' 2>/dev/null | sed 's/^/  /' || true
 
