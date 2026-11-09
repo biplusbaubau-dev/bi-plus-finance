@@ -41,6 +41,9 @@ Thumbs.db
 
 # Dump database (berisi data keuangan)
 *.sql
+# ...tapi file migrasi Prisma WAJIB ikut git, kalau tidak `migrate deploy`
+# di VPS lain akan bilang "sukses" padahal DB ketinggalan schema.
+!prisma/migrations/**/*.sql
 
 # Cache TS
 *.tsbuildinfo
