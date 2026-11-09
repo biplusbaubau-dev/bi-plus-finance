@@ -1,0 +1,39 @@
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# ---------- Basic Auth ----------
+	# BASIC_AUTH_HASH dibuat dengan: caddy hash-password --plaintext 'PASSWORD'
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+
+	# ---------- Header keamanan ----------
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Foto unit: cache lama, tidak ikut Basic Auth prompt berulang
+	@upload path /uploads/*
+	header @upload Cache-Control "public, max-age=2592000"
+
+	# ---------- Reverse proxy ke Next.js ----------
+	reverse_proxy app:3000 {
+		# Agar Next.js tahu ini HTTPS di belakang proxy
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		# Tunggu lebih lama untuk operasi DB / upload foto
+		transport http {
+			read_timeout 120s
+			write_timeout 120s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

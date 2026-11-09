@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-const categories = ["Cable", "Adaptor", "Case", "Screen protector", "Charger", "Earphone", "Lainnya"];
+const categories = ["Cable", "Adaptor", "Baterai", "Case", "Screen protector", "Charger", "Earphone", "Lainnya"];
 
 export default async function AccessoriesPage() {
   const accessories = await prisma.accessory.findMany({
@@ -14,12 +14,12 @@ export default async function AccessoriesPage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-end justify-between">
-        <div>
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-sm text-zinc-500">Daftar aksesoris</p>
-          <h1 className="text-3xl font-bold">Aksesoris</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Aksesoris</h1>
         </div>
-        <Link href="/accessories/new" className="btn">+ Tambah aksesoris</Link>
+        <Link href="/accessories/new" className="btn w-full text-center sm:w-auto">+ Tambah aksesoris</Link>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-3">

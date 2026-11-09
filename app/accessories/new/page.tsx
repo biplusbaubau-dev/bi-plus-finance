@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createAccessory } from "../actions";
 
-const categories = ["Cable", "Adaptor", "Case", "Screen protector", "Charger", "Earphone", "Lainnya"];
+const categories = ["Cable", "Adaptor", "Baterai", "Case", "Screen protector", "Charger", "Earphone", "Lainnya"];
 const payments = [
   { v: "CASH", l: "Tunai" },
   { v: "TRANSFER", l: "Transfer" },
@@ -27,7 +27,7 @@ export default function NewAccessoryPage() {
       <Link href="/inventory?tab=aksesoris" className="text-sm underline">← Kembali ke Inventory</Link>
       <div>
         <p className="text-sm text-zinc-500">Aksesoris baru</p>
-        <h1 className="text-3xl font-bold">Tambah aksesoris</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Tambah aksesoris</h1>
       </div>
       <div className="card">
         <form action={createAccessory} className="grid gap-3 sm:grid-cols-2">
@@ -50,6 +50,10 @@ export default function NewAccessoryPage() {
           </label>
           <label className={!isPayLater ? "opacity-50" : ""}>Tenor (1–12 bulan)
             <input name="tenorMonths" type="number" min="1" max="12" defaultValue="3" disabled={!isPayLater} />
+          </label>
+          <label className="sm:col-span-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold">
+            <input name="isAsset" type="checkbox" className="mt-1 h-4 w-4 shrink-0" style={{ width: "auto" }} />
+            <span>Aset/alat BI+ (tidak dijual) <span className="block text-xs font-normal text-zinc-500">Contoh: gimbal, tripod, lampu. Masuk nilai aset, tidak masuk inventory dagangan.</span></span>
           </label>
           <label className="sm:col-span-2">Catatan<textarea name="notes" rows={2} /></label>
           <button className="btn sm:col-span-2">Simpan</button>

@@ -10,30 +10,36 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     prisma.accessory.findMany({ orderBy: { updatedAt: "desc" }, include: { _count: { select: { transactions: true } } } }),
   ]);
 
-  const totalAccValue = accessories.reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
-  const totalAccStock = accessories.reduce((sum, a) => sum + a.stock, 0);
+  const stock = accessories.filter((a) => !a.isAsset);
+  const assets = accessories.filter((a) => a.isAsset);
+  const totalAccValue = stock.reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
+  const totalAccStock = stock.reduce((sum, a) => sum + a.stock, 0);
+  const totalAssetValue = assets.reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
 
   const daysBetween = (start: Date, end: Date) => Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
 
   return (
     <div className="space-y-6">
-      <section className="flex items-end justify-between">
-        <div>
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-sm text-zinc-500">Daftar inventory</p>
-          <h1 className="text-3xl font-bold">Inventory</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Inventory</h1>
         </div>
-        <div className="flex gap-2">
-          <Link href="/inventory/new" className="btn">+ Tambah unit</Link>
-          <Link href="/accessories/new" className="btn">+ Tambah aksesoris</Link>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+          <Link href="/inventory/new" className="btn text-center">+ Tambah unit</Link>
+          <Link href="/accessories/new" className="btn text-center">+ Tambah aksesoris</Link>
         </div>
       </section>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         <Link href="/inventory?tab=unit" className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "unit" ? "bg-zinc-900 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
           📱 Unit ({items.length})
         </Link>
-        <Link href="/inventory?tab=aksesoris" className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === "aksesoris" ? "bg-zinc-900 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
-          🎧 Aksesoris ({accessories.length})
+        <Link href="/inventory?tab=aksesoris" className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === "aksesoris" ? "bg-zinc-900 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
+          🎧 Aksesoris ({stock.length})
+        </Link>
+        <Link href="/inventory?tab=aset" className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === "aset" ? "bg-zinc-900 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-200"}`}>
+          🛠️ Aset ({assets.length})
         </Link>
       </div>
 
@@ -46,7 +52,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                 <th>Status</th>
                 <th className="text-right">Modal</th>
                 <th className="text-right">Target jual</th>
-                <th>Masuk</th>
+                <th>Tgl beli</th>
                 <th>Terjual</th>
                 <th className="text-right">Harga jual</th>
                 <th className="text-right">Profit</th>
@@ -93,10 +99,46 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             </tbody>
           </table>
         </div>
+      ) : tab === "aset" ? (
+        <>
+          <section className="grid gap-3 sm:grid-cols-3">
+            <div className="card"><p className="text-sm text-zinc-500">Total aset</p><p className="mt-1 text-2xl font-bold">{assets.length}</p></div>
+            <div className="card"><p className="text-sm text-zinc-500">Nilai aset</p><p className="mt-1 text-2xl font-bold">Rp{totalAssetValue.toLocaleString("id-ID")}</p></div>
+          </section>
+          <div className="card overflow-x-auto">
+            <table className="table text-xs">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Kategori</th>
+                  <th className="text-right">Harga beli</th>
+                  <th className="text-right">Nilai</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.length === 0 ? (
+                  <tr><td colSpan={5} className="py-4 text-center text-zinc-400">Belum ada aset — tambah via + Tambah aksesoris, centang “Aset/alat BI+”.</td></tr>
+                ) : assets.map((a) => (
+                  <tr key={a.id} className="hover:bg-zinc-50/50">
+                    <td>
+                      <Link href={`/accessories/${a.id}`} className="font-semibold hover:underline">{a.name}</Link>
+                      {a.notes && <p className="text-zinc-400">{a.notes}</p>}
+                    </td>
+                    <td><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{a.category}</span></td>
+                    <td className="text-right">Rp{a.purchasePrice.toLocaleString("id-ID")}</td>
+                    <td className="text-right font-semibold">Rp{(a.stock * a.purchasePrice).toLocaleString("id-ID")}</td>
+                    <td><Link href={`/accessories/${a.id}`} className="text-xs font-semibold text-blue-600 hover:underline">Detail</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <>
           <section className="grid gap-3 sm:grid-cols-3">
-            <div className="card"><p className="text-sm text-zinc-500">Total item</p><p className="mt-1 text-2xl font-bold">{accessories.length}</p></div>
+            <div className="card"><p className="text-sm text-zinc-500">Total item</p><p className="mt-1 text-2xl font-bold">{stock.length}</p></div>
             <div className="card"><p className="text-sm text-zinc-500">Total stok</p><p className="mt-1 text-2xl font-bold">{totalAccStock}</p></div>
             <div className="card"><p className="text-sm text-zinc-500">Nilai inventory</p><p className="mt-1 text-2xl font-bold">Rp{totalAccValue.toLocaleString("id-ID")}</p></div>
           </section>
@@ -114,7 +156,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                 </tr>
               </thead>
               <tbody>
-                {accessories.map((a) => (
+                {stock.map((a) => (
                   <tr key={a.id} className="hover:bg-zinc-50/50">
                     <td>
                       <Link href={`/accessories/${a.id}`} className="font-semibold hover:underline">{a.name}</Link>

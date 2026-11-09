@@ -1,166 +1,244 @@
 #!/usr/bin/env python3
-"""Eksekusi import dari import_data.json ke database."""
-import json, psycopg2, uuid
+"""Replace finance rows from import_data.json. Accessory and UnitImage stay."""
+import json
+import uuid
 from datetime import datetime
 from urllib.parse import urlparse
+
+import psycopg2
 
 DATA_FILE = "import_data.json"
 BACKUP_FILE = "db_backup_before_import.json"
 
+
 def cuid():
-    """Generate Prisma-style cuid: c + 24 hex chars."""
     return "c" + uuid.uuid4().hex[:24]
 
+
 def db_url():
-    with open(".env") as f:
-        for l in f:
-            if l.startswith("DATABASE_URL="):
-                return l.split("=",1)[1].strip().strip('"')
+    with open(".env", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("DATABASE_URL="):
+                return line.split("=", 1)[1].strip().strip('"')
+    raise RuntimeError("DATABASE_URL missing")
 
-def parse_dt(v):
-    if v is None: return None
-    if isinstance(v,str):
-        try: return datetime.fromisoformat(v)
-        except: return None
-    return v
 
-# Load data
-with open(DATA_FILE) as f: d = json.load(f)
-units, sales, kas = d["units"], d["sales"], d["kas"]
-print(f"Data: {len(units)} units, {len(sales)} sales, {len(kas)} kas")
+def dt(v):
+    return datetime.fromisoformat(v) if v else None
 
-# Connect
-url=db_url(); p=urlparse(url)
-cs=f"host={p.hostname} port={p.port} dbname={p.path.lstrip('/')} user={p.username} password={p.password}"
-conn=psycopg2.connect(cs); conn.autocommit=False; cur=conn.cursor()
-print(f"Connect: {p.hostname}:{p.port}/{p.path.lstrip('/')}")
 
-# Backup
-print("\n=== BACKUP ===")
-bk={"timestamp":datetime.now().isoformat(),"tables":{}}
-cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name")
-for t in [r[0] for r in cur.fetchall()]:
-    cur.execute(f'SELECT * FROM "{t}"')
-    cols=[d2[0] for d2 in cur.description]; rows=cur.fetchall()
-    bk["tables"][t]={"columns":cols,"count":len(rows),"data":[dict(zip(cols,r)) for r in rows]}
-    print(f"  {t}: {len(rows)}")
-with open(BACKUP_FILE,"w") as f: json.dump(bk,f,default=str)
-print(f"Backup: {BACKUP_FILE}")
+def due_on_25(start, n):
+    month = start.month + n
+    year = start.year + (month - 1) // 12
+    month = (month - 1) % 12 + 1
+    return start.replace(year=year, month=month, day=25)
 
-# Delete all
-print("\n=== DELETE ===")
-for t in ['"CashTransaction"','"Sale"','"Expense"','"OtherIncome"','"PayLaterInstallment"','"PayLaterDebt"','"Purchase"','"InventoryItem"']:
-    cur.execute(f"DELETE FROM {t}")
-conn.commit(); print("Done")
 
-# ── Import Units (InventoryItem + Purchase + PayLater) ─────────────
-print("\n=== IMPORT UNITS ===")
-for u in units:
-    pd = parse_dt(u.get("purchase_date"))
+with open(DATA_FILE, encoding="utf-8") as f:
+    data = json.load(f)
+
+url = urlparse(db_url())
+conn = psycopg2.connect(
+    host=url.hostname,
+    port=url.port,
+    dbname=url.path.lstrip("/"),
+    user=url.username,
+    password=url.password,
+)
+conn.autocommit = False
+cur = conn.cursor()
+
+backup = {"timestamp": datetime.now().isoformat(), "tables": {}}
+cur.execute(
+    "SELECT table_name FROM information_schema.tables "
+    "WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name"
+)
+for table in [r[0] for r in cur.fetchall()]:
+    cur.execute(f'SELECT * FROM "{table}"')
+    cols = [d[0] for d in cur.description]
+    rows = cur.fetchall()
+    backup["tables"][table] = {"count": len(rows), "data": [dict(zip(cols, r)) for r in rows]}
+    print(f"backup {table}: {len(rows)}")
+with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+    json.dump(backup, f, default=str)
+print(f"wrote {BACKUP_FILE}")
+
+for table in (
+    "CashTransaction",
+    "Sale",
+    "Expense",
+    "OtherIncome",
+    "PayLaterInstallment",
+    "PayLaterDebt",
+    "Purchase",
+    "InventoryItem",
+):
+    cur.execute(f'DELETE FROM "{table}"')
+print("deleted finance rows")
+
+now = datetime.now()
+item_ids = {}
+debt_ids = {}
+
+for u in data["units"]:
     item_id = cuid()
-    cur.execute('''INSERT INTO "InventoryItem"(id,code,imei,brand,model,storage,color,
-        "batteryHealth",condition,status,"purchaseDate",supplier,"purchasePrice",
-        "additionalCost","askingPrice",notes,"updatedAt") VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
-        (item_id,u["code"],None,"Apple",u["model"],u["storage"],u["color"],
-         None,"Good",u["status"],pd,None,u["purchase_price"],u["additional_cost"],
-         u.get("asking_price"),u.get("notes"),datetime.now()))
-    
-    # Purchase
+    item_ids[u["code"]] = item_id
+    purchased = dt(u["purchase_date"])
+    cur.execute(
+        '''INSERT INTO "InventoryItem"
+        (id,code,brand,model,storage,color,condition,status,"purchaseDate",
+         "purchasePrice","additionalCost",notes,"createdAt","updatedAt")
+        VALUES (%s,%s,%s,%s,%s,'Various','Good',%s,%s,%s,%s,%s,%s,%s)''',
+        (
+            item_id, u["code"], u["brand"], u["model"], u["storage"], u["status"],
+            purchased, u["purchase_price"], u["additional_cost"], u["notes"], now, now,
+        ),
+    )
     purchase_id = cuid()
-    cur.execute('''INSERT INTO "Purchase"(id,date,supplier,"paymentMethod",notes,"inventoryItemId")
-        VALUES(%s,%s,%s,%s,%s,%s)''', (purchase_id,pd, None, u["payment_method"], u.get("notes"), item_id))
-    
-    # Cash transaction for non-PayLater
-    if u["payment_method"] != "PAYLATER":
-        cur.execute('''INSERT INTO "CashTransaction"(id,date,type,description,income,expense,"paymentMethod","purchaseId")
-            VALUES(%s,%s,'PURCHASE',%s,0,%s,%s,%s)''',
-            (cuid(),pd, f"Beli {u['model']} ({u['code']})", u["purchase_price"]+u["additional_cost"], u["payment_method"], purchase_id))
-    
-    # PayLater debt + installments
-    if u["payment_method"] == "PAYLATER" and u.get("debt_id"):
+    cur.execute(
+        '''INSERT INTO "Purchase"(id,date,"paymentMethod",notes,"inventoryItemId","createdAt")
+        VALUES (%s,%s,%s,%s,%s,%s)''',
+        (purchase_id, purchased, u["payment_method"], u["notes"], item_id, now),
+    )
+    if u["payment_method"] == "PAYLATER" and u["debt_id"] and u["status"] != "RETURNED":
         debt_id = cuid()
-        cur.execute('''INSERT INTO "PayLaterDebt"(id,code,"totalLiability","tenorMonths","startDate","purchaseId")
-            VALUES(%s,%s,%s,%s,%s,%s)''',
-            (debt_id,u["debt_id"], u["total_liability"], u["tenor_months"], pd, purchase_id))
-        if u["tenor_months"] and u["total_liability"]:
-            monthly = u["total_liability"] // int(u["tenor_months"])
-            remainder = u["total_liability"] - monthly * int(u["tenor_months"])
-            for i in range(int(u["tenor_months"])):
-                due = pd.replace(month=pd.month+i+1)
-                amt = monthly + (remainder if i==int(u["tenor_months"])-1 else 0)
-                cur.execute('''INSERT INTO "PayLaterInstallment"(id,"debtId","installmentNo","dueDate",amount,status)
-                    VALUES(%s,%s,%s,%s,%s,'PENDING')''', (cuid(),debt_id, i+1, due, amt))
+        debt_ids[u["debt_id"]] = debt_id
+        cur.execute(
+            '''INSERT INTO "PayLaterDebt"
+            (id,code,"totalLiability","tenorMonths","startDate","purchaseId","createdAt")
+            VALUES (%s,%s,%s,%s,%s,%s,%s)''',
+            (debt_id, u["debt_id"], u["total_liability"], u["tenor_months"], purchased, purchase_id, now),
+        )
 
-conn.commit(); print("Units OK")
+by_debt = {}
+for inst in data["installments"]:
+    by_debt.setdefault(inst["debt_code"], []).append(inst)
 
-# ── Import Sales ───────────────────────────────────────────────────
-print("\n=== IMPORT SALES ===")
-for s in sales:
-    sd = parse_dt(s.get("date"))
-    cur.execute('SELECT id FROM "InventoryItem" WHERE code=%s', (s["unit_code"],))
-    row = cur.fetchone()
-    if not row:
-        print(f"  SKIP {s['unit_code']} not found")
+for debt_code, debt_id in debt_ids.items():
+    rows = sorted(by_debt.get(debt_code, []), key=lambda x: x["no"])
+    unit = next(u for u in data["units"] if u["debt_id"] == debt_code)
+    start = dt(unit["purchase_date"])
+    if not rows and unit["tenor_months"] > 0:
+        monthly = unit["total_liability"] // unit["tenor_months"]
+        rem = unit["total_liability"] - monthly * unit["tenor_months"]
+        rows = [
+            {"no": i + 1, "amount": monthly + (rem if i == unit["tenor_months"] - 1 else 0),
+             "due": due_on_25(start, i + 1).date().isoformat(), "paid": False, "paid_at": None}
+            for i in range(unit["tenor_months"])
+        ]
+    for inst in rows:
+        due = dt(inst["due"]) or due_on_25(start, inst["no"])
+        paid_at = dt(inst["paid_at"]) if inst["paid"] else None
+        cur.execute(
+            '''INSERT INTO "PayLaterInstallment"
+            (id,"debtId","installmentNo","dueDate",amount,status,"paidAt")
+            VALUES (%s,%s,%s,%s,%s,%s,%s)''',
+            (cuid(), debt_id, inst["no"], due, inst["amount"], "PAID" if inst["paid"] else "PENDING", paid_at),
+        )
+
+for sale in data["sales"]:
+    if sale["skip_sale"]:
+        print(f"skip sale {sale['invoice_no']} BI-003 returned")
         continue
-    item_id = row[0]
+    sold = dt(sale["date"])
     sale_id = cuid()
-    cur.execute('''INSERT INTO "Sale"(id,"invoiceNo",date,"salePrice","sellingCost",
-        "paymentMethod","customerName",notes,"inventoryItemId") VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
-        (sale_id,s["invoice_no"],sd,s["sale_price"],s["selling_cost"],
-         s["payment_method"],None,s.get("notes"),item_id))
-    cur.execute('UPDATE "InventoryItem" SET status=%s WHERE id=%s', ("SOLD", item_id))
-    cur.execute('''INSERT INTO "CashTransaction"(id,date,type,description,income,expense,"paymentMethod","saleId")
-        VALUES(%s,%s,'SALE',%s,%s,0,%s,%s)''',
-        (cuid(),sd, f"Penjualan {s['model']} ({s['unit_code']})",
-         s["total_sale"]-s["selling_cost"], s["payment_method"], sale_id))
+    note = sale["notes"]
+    if sale["accessory"]:
+        extra = f"Aksesoris {sale['accessory']:+,}".replace(",", ".")
+        note = f"{note} | {extra}" if note else extra
+    cur.execute(
+        '''INSERT INTO "Sale"
+        (id,"invoiceNo",date,"salePrice","sellingCost","paymentMethod",notes,"inventoryItemId","createdAt")
+        VALUES (%s,%s,%s,%s,0,%s,%s,%s,%s)''',
+        (sale_id, sale["invoice_no"], sold, sale["sale_price"], sale["payment_method"], note, item_ids[sale["unit_code"]], now),
+    )
 
-conn.commit(); print("Sales OK")
-
-# ── Import Kas ─────────────────────────────────────────────────────
-print("\n=== IMPORT KAS ===")
-for k in kas:
-    kd = parse_dt(k.get("date"))
-    itype = k["type"]; desc = k.get("description") or itype
-    inc = k.get("income") or 0; exp = k.get("expense") or 0
-    ref = k.get("unit_or_debt"); notes = k.get("notes")
-    
-    if itype == "Penjualan":
-        continue  # Already handled by sales
-    elif itype == "Modal":
-        oi_id = cuid()
-        cur.execute('''INSERT INTO "OtherIncome"(id,date,source,amount,"paymentMethod",notes)
-            VALUES(%s,%s,%s,%s,'CASH',%s)''', (oi_id,kd, desc, inc, notes))
-        cur.execute('''INSERT INTO "CashTransaction"(id,date,type,description,income,expense,"paymentMethod","otherIncomeId")
-            VALUES(%s,%s,'OTHER_INCOME',%s,%s,0,'CASH',%s)''', (cuid(),kd, desc, inc, oi_id))
-    elif itype in ("Beli stok", "Beli Aksesoris", "Biaya"):
+# Kas sheet is the only cash ledger. Sales and purchases are not posted twice.
+for row in data["kas"]:
+    when = dt(row["date"])
+    kind, desc = row["type"], row["description"]
+    income, expense = row["income"], row["expense"]
+    ref = row["unit_or_debt"]
+    if kind == "Penjualan":
+        cur.execute('SELECT id FROM "Sale" WHERE "invoiceNo"=%s', (desc,))
+        found = cur.fetchone()
+        cur.execute(
+            '''INSERT INTO "CashTransaction"
+            (id,date,type,description,income,expense,"paymentMethod","saleId","createdAt")
+            VALUES (%s,%s,'SALE',%s,%s,%s,'CASH',%s,%s)''',
+            (cuid(), when, desc, income, expense, found[0] if found else None, now),
+        )
+    elif kind == "Cicilan":
+        cur.execute(
+            '''INSERT INTO "CashTransaction"
+            (id,date,type,description,income,expense,"paymentMethod","createdAt")
+            VALUES (%s,%s,'PAYLATER_PAYMENT',%s,%s,%s,'PAYLATER',%s)''',
+            (cuid(), when, f"{desc} {ref or ''}".strip(), income, expense, now),
+        )
+    elif kind == "Modal" and income > 0 and expense == 0:
+        other_id = cuid()
+        cur.execute(
+            '''INSERT INTO "OtherIncome"(id,date,source,amount,"paymentMethod",notes,"createdAt")
+            VALUES (%s,%s,%s,%s,'CASH',%s,%s)''',
+            (other_id, when, desc, income, row["notes"], now),
+        )
+        cur.execute(
+            '''INSERT INTO "CashTransaction"
+            (id,date,type,description,income,expense,"paymentMethod","otherIncomeId","createdAt")
+            VALUES (%s,%s,'OTHER_INCOME',%s,%s,0,'CASH',%s,%s)''',
+            (cuid(), when, desc, income, other_id, now),
+        )
+    elif income > 0 and expense == 0:
+        other_id = cuid()
+        cur.execute(
+            '''INSERT INTO "OtherIncome"(id,date,source,amount,"paymentMethod",notes,"createdAt")
+            VALUES (%s,%s,%s,%s,'CASH',%s,%s)''',
+            (other_id, when, desc or kind, income, row["notes"], now),
+        )
+        cur.execute(
+            '''INSERT INTO "CashTransaction"
+            (id,date,type,description,income,expense,"paymentMethod","otherIncomeId","createdAt")
+            VALUES (%s,%s,'OTHER_INCOME',%s,%s,0,'CASH',%s,%s)''',
+            (cuid(), when, desc or kind, income, other_id, now),
+        )
+    elif expense > 0:
+        category = "MARKETING" if "iklan" in desc.lower() or "marketing" in desc.lower() else "OTHER"
+        if "transport" in desc.lower() or "packing" in desc.lower():
+            category = "TRANSPORT"
         exp_id = cuid()
-        cur.execute('''INSERT INTO "Expense"(id,date,category,amount,"paymentMethod",description,notes)
-            VALUES(%s,%s,'OTHER',%s,'CASH',%s,%s)''', (exp_id,kd, exp or inc, desc, notes))
-        cur.execute('''INSERT INTO "CashTransaction"(id,date,type,description,income,expense,"paymentMethod","expenseId")
-            VALUES(%s,%s,'EXPENSE',%s,0,%s,'CASH',%s)''', (cuid(),kd, desc, exp or inc, exp_id))
-    elif itype == "Cicilan":
-        if ref:
-            cur.execute('SELECT id FROM "PayLaterDebt" WHERE code=%s', (ref,))
-            debt_row = cur.fetchone()
-            if debt_row:
-                cur.execute('SELECT id FROM "PayLaterInstallment" WHERE "debtId"=%s AND status=%s ORDER BY "installmentNo" LIMIT 1', (debt_row[0], "PENDING"))
-                inst_row = cur.fetchone()
-                if inst_row:
-                    cur.execute('UPDATE "PayLaterInstallment" SET status=%s,"paidAt"=%s WHERE id=%s', ("PAID", kd, inst_row[0]))
-                    cur.execute('''INSERT INTO "CashTransaction"(id,date,type,description,income,expense,"paymentMethod","installmentId")
-                        VALUES(%s,%s,'PAYLATER_PAYMENT',%s,0,%s,'PAYLATER',%s)''',
-                        (cuid(),kd, f"Cicilan {ref}", exp, inst_row[0]))
+        cur.execute(
+            '''INSERT INTO "Expense"(id,date,category,amount,"paymentMethod",description,notes,"createdAt")
+            VALUES (%s,%s,%s,%s,'CASH',%s,%s,%s)''',
+            (exp_id, when, category, expense, desc, row["notes"], now),
+        )
+        tx_type = "PURCHASE" if kind in ("Beli stok", "Beli Aksesoris", "Modal") else "EXPENSE"
+        cur.execute(
+            '''INSERT INTO "CashTransaction"
+            (id,date,type,description,income,expense,"paymentMethod","expenseId","createdAt")
+            VALUES (%s,%s,%s,%s,0,%s,'CASH',%s,%s)''',
+            (cuid(), when, tx_type, desc, expense, exp_id, now),
+        )
     else:
-        cur.execute('''INSERT INTO "CashTransaction"(id,date,type,description,income,expense,"paymentMethod")
-            VALUES(%s,%s,'OTHER_INCOME',%s,%s,0,'CASH')''', (cuid(),kd, desc, inc))
+        print(f"skip zero kas {when.date()} {kind} {desc}")
 
-conn.commit(); print("Kas OK")
+conn.commit()
 
-# ── Verify ──────────────────────────────────────────────────────────
-print("\n=== VERIFY ===")
-for t in ['"InventoryItem"','"Purchase"','"Sale"','"CashTransaction"','"PayLaterDebt"','"PayLaterInstallment"','"Expense"','"OtherIncome"']:
-    cur.execute(f"SELECT COUNT(*) FROM {t}")
-    print(f"  {t}: {cur.fetchone()[0]}")
-
-cur.close(); conn.close()
-print("\nDONE")
+cur.execute('SELECT COALESCE(SUM(income),0), COALESCE(SUM(expense),0) FROM "CashTransaction"')
+inc, exp = cur.fetchone()
+print(f"cash in {inc:,} out {exp:,} balance {inc - exp:,}")
+cur.execute('SELECT status, COUNT(*) FROM "InventoryItem" GROUP BY status ORDER BY status')
+print("units", cur.fetchall())
+cur.execute('SELECT COUNT(*) FROM "Sale"')
+print("sales", cur.fetchone()[0])
+cur.execute('SELECT COUNT(*), COUNT(*) FILTER (WHERE status=\'PAID\') FROM "PayLaterInstallment"')
+print("installments total/paid", cur.fetchone())
+cur.execute(
+    '''SELECT COUNT(*) FROM "PayLaterDebt" d
+       JOIN "Purchase" p ON p.id=d."purchaseId"
+       JOIN "InventoryItem" i ON i.id=p."inventoryItemId"
+       WHERE i.status=\'RETURNED\''''
+)
+print("returned debts (want 0)", cur.fetchone()[0])
+cur.close()
+conn.close()
+print("DONE")

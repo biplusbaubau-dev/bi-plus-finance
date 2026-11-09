@@ -18,6 +18,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ["Net profit", data.netProfit],
     ["Saldo kas", data.cashBalance],
     ["Modal di inventory", data.inventoryValue],
+    ["Nilai aset/alat", data.assetValue],
+    ["Total aset", data.totalAssets],
     ["Sisa PayLater", data.payLaterOutstanding],
     ["Jatuh tempo bulan ini", data.payLaterDueThisMonth],
   ];
@@ -32,12 +34,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-sm text-zinc-500">Ringkasan bisnis</p>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
         </div>
-        <Link className="btn" href="/transactions">+ Catat transaksi</Link>
+        <Link className="btn w-full text-center sm:w-auto" href="/transactions">+ Catat transaksi</Link>
       </section>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {filters.map(([key, label]) => (
@@ -47,33 +49,34 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           </Link>
         ))}
       </div>
-      <form className="flex items-end gap-2">
+      <form className="grid grid-cols-2 items-end gap-2 sm:flex">
         <label>Dari<input name="from" type="date" defaultValue={from} /></label>
         <label>Sampai<input name="to" type="date" defaultValue={to} /></label>
-        <button className="btn-secondary" type="submit">Terapkan</button>
+        <button className="btn-secondary col-span-2 sm:col-span-1" type="submit">Terapkan</button>
       </form>
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {metrics.map(([label, value]) => (
-          <div className="card" key={String(label)}>
-            <p className="text-xs font-medium text-zinc-500">{label}</p>
-            <p className={"mt-2 text-lg font-bold " + (Number(value) < 0 ? "text-red-600" : "")}>
-              {rupiah(Number(value))}
-            </p>
-          </div>
-        ))}
+                  <div className="card min-w-0" key={String(label)}>
+                    <p className="truncate text-xs font-medium text-zinc-500">{label}</p>
+                    <p className={"mt-1 text-sm font-bold sm:mt-2 sm:text-lg " + (Number(value) < 0 ? "text-red-600" : "")}>
+                      {rupiah(Number(value))}
+                    </p>
+                    {label === "Sisa PayLater" && <p className="mt-1 text-[11px] text-zinc-400">Limit Shopee Rp 8.100.000</p>}
+                  </div>
+                ))}
       </section>
-      <section className="grid gap-3 sm:grid-cols-3">
-        <div className="card">
-          <p className="text-sm text-zinc-500">Unit tersedia</p>
-          <p className="mt-1 text-3xl font-bold">{data.available}</p>
+      <section className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="card min-w-0">
+          <p className="truncate text-xs text-zinc-500 sm:text-sm">Unit tersedia</p>
+          <p className="mt-1 text-2xl font-bold sm:text-3xl">{data.available}</p>
         </div>
-        <div className="card">
-          <p className="text-sm text-zinc-500">Unit terjual</p>
-          <p className="mt-1 text-3xl font-bold">{data.sold}</p>
+        <div className="card min-w-0">
+          <p className="truncate text-xs text-zinc-500 sm:text-sm">Unit terjual</p>
+          <p className="mt-1 text-2xl font-bold sm:text-3xl">{data.sold}</p>
         </div>
-        <div className="card">
-          <p className="text-sm text-zinc-500">Cicilan belum dibayar</p>
-          <p className="mt-1 text-3xl font-bold">{data.payLaterCount}</p>
+        <div className="card min-w-0">
+          <p className="truncate text-xs text-zinc-500 sm:text-sm">Cicilan blm dibayar</p>
+          <p className="mt-1 text-2xl font-bold sm:text-3xl">{data.payLaterCount}</p>
         </div>
       </section>
       {data.pendingInstallments && data.pendingInstallments.length > 0 && (

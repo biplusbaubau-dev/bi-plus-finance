@@ -1,0 +1,98 @@
+# ==========================================================
+# BI+ Finance App — stack produksi
+#   caddy     : HTTPS otomatis + Basic Auth (satu-satunya port publik)
+#   app       : Next.js standalone (internal saja)
+#   migrate   : prisma migrate deploy, sekali jalan lalu keluar
+#   db        : PostgreSQL 16, data di volume
+#
+# Pemakaian:
+#   cp .env.production.example .env.production   # lalu isi
+#   docker compose up -d --build
+# ==========================================================
+name: biplus-finance
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Collation biar urutan teks konsisten
+      LANG: C.UTF-8
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Tidak diekspos ke host — hanya jaringan internal Docker
+    expose:
+      - "5432"
+    # Hemat RAM untuk VPS kecil (1 GB)
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=30
+
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: runner
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      TZ: Asia/Jakarta
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      # Foto unit yang di-upload tetap ada walau container di-rebuild
+      - uploads:/app/public/uploads
+    expose:
+      - "3000"
+    # Batasi memori agar VPS 1 GB tidak OOM
+    mem_limit: 700m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

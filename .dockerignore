@@ -1,0 +1,26 @@
+# Jangan pernah kirim ke build context / image
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.production.example
+
+# Data keuangan & backup — JANGAN masuk image
+db_backup*.json
+import_data.json
+*.xlsx
+*.ndjson
+dev-server.log
+backup_before_wipe.py
+check_status.py
+
+# Upload runtime (di-mount sebagai volume, bukan dari image)
+public/uploads
+
+# Sampah OS
+.gitignore
+*.md
+!deploy/README.md
+.vscode
+.idea

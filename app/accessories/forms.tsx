@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { createAccessory, purchaseAccessory, sellAccessory } from "./actions";
 
-const categories = ["Cable", "Adaptor", "Case", "Screen protector", "Charger", "Earphone", "Lainnya"];
+const categories = ["Cable", "Adaptor", "Baterai", "Case", "Screen protector", "Charger", "Earphone", "Lainnya"];
 const payments = [
   { v: "CASH", l: "Tunai" },
   { v: "TRANSFER", l: "Transfer" },

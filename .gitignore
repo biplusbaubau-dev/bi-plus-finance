@@ -1,5 +1,46 @@
+# Dependency & build
 node_modules
 .next
+out
+build
+
+# Environment (JANGAN pernah commit)
 .env
+.env.local
+.env.production
+.env.*.local
+!.env.example
+!.env.production.example
+
+# Database lokal
 prisma/dev.db
-.env
+*.db
+
+# Data keuangan & backup — jangan masuk git publik
+db_backup*.json
+import_data.json
+backups/
+
+# Spreadsheet / hasil ekspor
+*.xlsx
+*.ndjson
+
+# Upload runtime
+public/uploads
+
+# Log & scratch
+*.log
+backup_before_wipe.py
+check_status.py
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Dump database (berisi data keuangan)
+*.sql
+
+# Cache TS
+*.tsbuildinfo

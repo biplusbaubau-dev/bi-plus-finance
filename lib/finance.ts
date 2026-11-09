@@ -20,6 +20,7 @@ export async function dashboardData(period: Period = {}) {
       where: { OR: [
         { purchase: { inventoryItem: { status: { not: InventoryStatus.RETURNED } } } },
         { accessoryId: { not: null } },
+        { purchaseId: null, accessoryId: null },
       ]},
       include: { installments: true, purchase: { include: { inventoryItem: true } }, accessory: true },
     }),
@@ -31,11 +32,14 @@ export async function dashboardData(period: Period = {}) {
   const sellingCost = sales.reduce((sum, sale) => sum + sale.sellingCost, 0);
   const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0) + sellingCost;
   const grossProfit = omzet - cogs;
-  const netProfit = grossProfit - totalExpense + incomes.reduce((sum, item) => sum + item.amount, 0);
+  const debtIncomeIds = new Set(debts.filter((d) => d.purchaseId === null && d.accessoryId === null && d.debtName).map((d) => d.debtName));
+  const operationalIncomes = incomes.filter((item) => !debtIncomeIds.has(item.source) && !item.isLoan);
+  const netProfit = grossProfit - totalExpense + operationalIncomes.reduce((sum, item) => sum + item.amount, 0);
   const cashBalance = ledger.reduce((sum, item) => sum + item.income - item.expense, 0);
   const available = inventory.filter((item) => item.status === InventoryStatus.IN_STOCK);
   const inventoryValue = available.reduce((sum, item) => sum + item.purchasePrice + item.additionalCost, 0);
-  const accessoryValue = accessories.reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
+  const accessoryValue = accessories.filter((a) => !a.isAsset).reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
+  const assetValue = accessories.filter((a) => a.isAsset).reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
   const totalInventoryValue = inventoryValue + accessoryValue;
   const estimatedProfit = available.reduce((sum, item) => sum + Math.max(0, (item.askingPrice ?? 0) - item.purchasePrice - item.additionalCost), 0);
   // Sum remaining from ALL debts (both HP and accessories)
@@ -66,7 +70,7 @@ export async function dashboardData(period: Period = {}) {
   incomes.forEach((item) => { ensureMonth(item.date).profit += item.amount; });
   ledger.forEach((item) => { ensureMonth(item.date).cashflow += item.income - item.expense; });
 
-  return { omzet, cogs, totalExpense, grossProfit, netProfit, cashBalance, inventoryValue: totalInventoryValue, accessoryValue, estimatedProfit, payLaterOutstanding, payLaterDueThisMonth, payLaterCount: installments.length, available: available.length, sold: inventory.filter((i) => i.status === InventoryStatus.SOLD).length, sales, expenses, ledger, monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), recentSales, pendingInstallments };}
+  return { omzet, cogs, totalExpense, grossProfit, netProfit, cashBalance, inventoryValue: totalInventoryValue, unitValue: inventoryValue, accessoryValue, assetValue, totalAssets: totalInventoryValue + assetValue + cashBalance, estimatedProfit, payLaterOutstanding, payLaterDueThisMonth, payLaterCount: installments.length, available: available.length, sold: inventory.filter((i) => i.status === InventoryStatus.SOLD).length, sales, expenses, ledger, monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), recentSales, pendingInstallments };}
 
 export function makeInvoice() { return `INV-${new Date().toISOString().slice(2, 10).replaceAll("-", "")}-${Math.floor(Math.random() * 900 + 100)}`; }
 export const ledgerLabel: Record<CashTransactionType, string> = { SALE: "Penjualan", PURCHASE: "Pembelian stok", EXPENSE: "Pengeluaran", OTHER_INCOME: "Pemasukan lain", PAYLATER_PAYMENT: "Bayar cicilan PayLater" };

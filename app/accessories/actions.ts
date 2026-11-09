@@ -26,11 +26,12 @@ export async function createAccessory(form: FormData) {
   const purchasePrice = Number(form.get("purchasePrice") ?? 0);
   const sellingPrice = Number(form.get("sellingPrice") ?? 0);
   const stock = Number(form.get("stock") ?? 0);
+  const isAsset = String(form.get("isAsset") ?? "") === "on";
   const notes = String(form.get("notes") ?? "").trim() || null;
   const paymentMethod = (String(form.get("paymentMethod") ?? "CASH")) as any;
 
   const accessory = await prisma.accessory.create({
-    data: { name, category, purchasePrice, sellingPrice, stock, notes },
+    data: { name, category, purchasePrice, sellingPrice, stock, isAsset, notes },
   });
 
   if (stock > 0 && purchasePrice > 0) {
@@ -51,7 +52,7 @@ export async function createAccessory(form: FormData) {
   }
 
   revalidatePath("/inventory");
-  redirect(`/inventory?tab=aksesoris`);
+  redirect(isAsset ? `/accessories/${accessory.id}` : `/inventory?tab=aksesoris`);
 }
 
 export async function purchaseAccessory(form: FormData) {

@@ -10,6 +10,7 @@ export default async function CashflowPage() {
       where: { OR: [
         { purchase: { inventoryItem: { status: { not: InventoryStatus.RETURNED } } } },
         { accessoryId: { not: null } },
+        { purchaseId: null, accessoryId: null },
       ]},
       orderBy: { startDate: "asc" },
       include: {
@@ -27,14 +28,14 @@ export default async function CashflowPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-zinc-500">Semua mutasi berasal dari transaksi</p>
-        <h1 className="text-3xl font-bold">Cashflow</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Cashflow</h1>
       </div>
 
       {/* PayLater debts */}
       {debts.length > 0 && (
         <section className="card">
           <h2 className="mb-4 text-lg font-bold">Hutang PayLater</h2>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {debts.map((d) => {
               const paid = d.installments.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0);
               const remaining = d.totalLiability - paid;

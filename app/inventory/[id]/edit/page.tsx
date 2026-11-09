@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { EditInventoryForm } from "@/components/forms";
+import { duplicateInventory } from "@/app/actions";
+import { EditInventoryForm, SellThisUnitForm } from "@/components/forms";
 import { UnitImageGallery } from "@/components/unit-image-gallery";
 
 export default async function EditInventoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const item = await prisma.inventoryItem.findUnique({
     where: { id },
-    include: { images: { orderBy: { uploadedAt: "desc" } } },
+    include: { images: { orderBy: { uploadedAt: "desc" } }, sale: true },
   });
   if (!item) notFound();
 
@@ -19,7 +20,7 @@ export default async function EditInventoryPage({ params }: { params: Promise<{ 
       <div className="flex items-end justify-between">
         <div>
           <p className="text-sm text-zinc-500">{item.code}</p>
-          <h1 className="text-3xl font-bold">Edit stok</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Edit stok</h1>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
           item.status === "SOLD" ? "bg-emerald-100 text-emerald-800" :
@@ -27,13 +28,17 @@ export default async function EditInventoryPage({ params }: { params: Promise<{ 
           item.status === "RESERVED" ? "bg-blue-100 text-blue-800" :
           "bg-zinc-100 text-zinc-600"
         }`}>{item.status}</span>
+        <form action={duplicateInventory}>
+          <input type="hidden" name="id" value={item.id} />
+          <button className="btn" type="submit">Duplikat</button>
+        </form>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Form */}
         <div className="card space-y-4">
           <h2 className="font-semibold">Data unit</h2>
-          <EditInventoryForm item={item} />
+          <EditInventoryForm item={{ ...item, saleDate: item.sale?.date.toISOString().slice(0, 10) ?? null }} />
         </div>
 
         {/* Image Gallery */}
@@ -45,6 +50,14 @@ export default async function EditInventoryPage({ params }: { params: Promise<{ 
           <UnitImageGallery unitId={item.id} images={item.images} />
         </div>
       </div>
+
+      {item.status !== "SOLD" && item.status !== "RETURNED" && (
+        <div className="card space-y-3">
+          <h2 className="font-semibold">Jual unit ini</h2>
+          <p className="text-xs text-zinc-500">Langsung tercatat sebagai penjualan. Tidak perlu pindah ke tab Transaksi.</p>
+          <SellThisUnitForm unit={item} />
+        </div>
+      )}
     </div>
   );
 }

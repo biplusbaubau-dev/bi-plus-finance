@@ -98,6 +98,7 @@ enum InstallmentStatus {
 model PayLaterDebt {
   id              String                @id @default(cuid())
   code            String                @unique
+  debtName        String?
   totalLiability  Int
   tenorMonths     Int
   startDate       DateTime
@@ -156,14 +157,15 @@ model Expense {
 }
 
 model OtherIncome {
-  id              String          @id @default(cuid())
-  date            DateTime
-  source          String
-  amount          Int
-  paymentMethod   PaymentMethod
-  notes           String?
+  id            String     @id @default(cuid())
+  date          DateTime
+  source        String
+  amount        Int
+  paymentMethod PaymentMethod
+  isLoan        Boolean    @default(false)
+  notes         String?
   cashTransaction CashTransaction?
-  createdAt       DateTime        @default(now())
+  createdAt     DateTime   @default(now())
 }
 
 model CashTransaction {
@@ -210,6 +212,7 @@ model Accessory {
   stock         Int      @default(0)
   purchasePrice Int      @default(0)
   sellingPrice  Int      @default(0)
+  isAsset       Boolean  @default(false)
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

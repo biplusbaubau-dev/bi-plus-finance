@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PurchaseForm, SellForm } from "../forms";
 import { dateId, rupiah } from "@/lib/format";
-import { deleteAccessory } from "./actions";
+import { deleteAccessory, deleteAccessoryTransaction } from "./actions";
 
 const payLabel: Record<string, string> = {
   CASH: "Tunai", TRANSFER: "Transfer", EWALLET: "E-wallet", PAYLATER: "PayLater", OTHER: "Lainnya",
@@ -25,10 +25,13 @@ export default async function AccessoryDetailPage({ params }: { params: Promise<
     <div className="mx-auto max-w-3xl space-y-5">
       <Link href="/inventory?tab=aksesoris" className="text-sm underline">← Kembali ke Inventory</Link>
 
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-zinc-500">{accessory.category}</p>
-          <h1 className="text-3xl font-bold">{accessory.name}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm text-zinc-500">{accessory.isAsset ? "Aset / alat BI+" : accessory.category}</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">{accessory.name}</h1>
+          {accessory.isAsset && (
+            <span className="mt-2 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">🛠️ ASET BI+ — tidak dijual</span>
+          )}
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
           accessory.stock <= 0 ? "bg-red-100 text-red-700" : accessory.stock <= 5 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
@@ -37,7 +40,7 @@ export default async function AccessoryDetailPage({ params }: { params: Promise<
         </span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="card"><p className="text-xs text-zinc-500">Stok</p><p className="text-2xl font-bold">{accessory.stock}</p></div>
         <div className="card"><p className="text-xs text-zinc-500">Harga beli</p><p className="text-lg font-bold">Rp{accessory.purchasePrice.toLocaleString("id-ID")}</p></div>
         <div className="card"><p className="text-xs text-zinc-500">Harga jual</p><p className="text-lg font-bold">Rp{accessory.sellingPrice.toLocaleString("id-ID")}</p></div>
@@ -49,10 +52,12 @@ export default async function AccessoryDetailPage({ params }: { params: Promise<
           <h2 className="font-semibold">Beli stok</h2>
           <PurchaseForm accessoryId={accessory.id} />
         </div>
-        <div className="card space-y-3">
-          <h2 className="font-semibold">Jual</h2>
-          <SellForm accessoryId={accessory.id} />
-        </div>
+        {!accessory.isAsset && (
+          <div className="card space-y-3">
+            <h2 className="font-semibold">Jual</h2>
+            <SellForm accessoryId={accessory.id} />
+          </div>
+        )}
       </div>
 
       {/* Transaction history */}
@@ -70,6 +75,7 @@ export default async function AccessoryDetailPage({ params }: { params: Promise<
                 <th className="text-right">Harga</th>
                 <th className="text-right">Total</th>
                 <th>Bayar</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -87,6 +93,12 @@ export default async function AccessoryDetailPage({ params }: { params: Promise<
                   <td className="text-right">Rp{t.unitPrice.toLocaleString("id-ID")}</td>
                   <td className="text-right font-semibold">Rp{t.totalPrice.toLocaleString("id-ID")}</td>
                   <td className="text-xs">{payLabel[t.paymentMethod] ?? t.paymentMethod}</td>
+                  <td>
+                    <form action={deleteAccessoryTransaction}>
+                      <input type="hidden" name="id" value={t.id} />
+                      <button type="submit" className="text-xs text-red-500 hover:underline">Hapus</button>
+                    </form>
+                  </td>
                 </tr>
               ))}
             </tbody>
