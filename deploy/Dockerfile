@@ -50,6 +50,14 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# ----------------------------------------------------------
+# PENTING: `output: standalone` TIDAK menyertakan Prisma Client.
+# Tanpa dua baris di bawah, container crash dengan
+# PrismaClientInitializationError pada query pertama.
+# ----------------------------------------------------------
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+
 # Siapkan folder upload agar bisa di-mount volume (foto unit tidak hilang saat rebuild)
 RUN mkdir -p /app/public/uploads/units \
  && chown -R nextjs:nodejs /app/public/uploads

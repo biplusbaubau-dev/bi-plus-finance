@@ -1,7 +1,10 @@
+# ==========================================================
 # Jangan pernah kirim ke build context / image
+# ==========================================================
 node_modules
 .next
 .git
+.gitignore
 .env
 .env.*
 !.env.production.example
@@ -11,16 +14,29 @@ db_backup*.json
 import_data.json
 *.xlsx
 *.ndjson
-dev-server.log
+*.log
 backup_before_wipe.py
 check_status.py
+export_db.py
+import_exec.py
+import_parse.py
+
+# Dump database lokal (PENTING: jangan pakai *.sql —
+# file prisma/migrations/**/migration.sql WAJIB ikut agar
+# `prisma migrate deploy` bisa jalan di container)
+biplus_local.sql
+*.dump
 
 # Upload runtime (di-mount sebagai volume, bukan dari image)
 public/uploads
 
-# Sampah OS
-.gitignore
-*.md
-!deploy/README.md
+# Sampah OS / cache
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
 .vscode
 .idea
+
+# Dokumen — README deploy tetap ikut
+*.md
+!deploy/README.md

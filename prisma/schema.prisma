@@ -1,5 +1,8 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Wajib untuk Docker/Alpine: unduh engine yang cocok dengan Linux musl.
+  // Tanpa ini, image bisa membawa engine Windows & crash saat runtime.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
