@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==========================================================
 # BI+ Finance App — bootstrap VPS (Ubuntu/Debian)
-# Sekali jalan: install Docker, swap, firewall, clone, build, restore DB.
+# Sekali jalan: swap, Docker, firewall, clone, build, restore DB.
 #
 # Pakai:
 #   sudo bash bootstrap.sh
@@ -18,6 +18,20 @@ warn() { printf '\033[1;33m  ! %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m  ✗ %s\033[0m\n' "$*" >&2; exit 1; }
 trap 'die "Gagal di baris $LINENO. Periksa pesan di atas."' ERR
 
+# Password acak alfanumerik (aman di dalam DATABASE_URL).
+# JANGAN pakai pola  tr </dev/urandom | head -c 32 :
+# head menutup pipe -> tr kena SIGPIPE (exit 141) -> set -o pipefail
+# membuat script mati. Juga jangan filter sekali jalan, karena hasilnya
+# bisa kurang dari 32 karakter. Loop sampai cukup.
+genpass() {
+  local p="" chunk
+  while [ "${#p}" -lt 32 ]; do
+    chunk="$(head -c 64 /dev/urandom | LC_ALL=C tr -dc 'A-Za-z0-9')"
+    p="$p$chunk"
+  done
+  printf '%s' "${p:0:32}"
+}
+
 [ "$(id -u)" -eq 0 ] || die "Jalankan sebagai root: sudo bash bootstrap.sh"
 
 # ==========================================================
@@ -30,7 +44,7 @@ echo "  RAM  : $(free -h | awk '/^Mem:/{print $2}')"
 echo "  Disk : $(df -h / | awk 'NR==2{print $4}') bebas"
 
 # ==========================================================
-# 1. Swap 2 GB (wajib untuk RAM 1 GB saat build Next.js)
+# 1. Swap 2 GB
 # ==========================================================
 log "Memeriksa swap"
 if [ "$(swapon --show --noheadings | wc -l)" -eq 0 ]; then
@@ -43,7 +57,6 @@ if [ "$(swapon --show --noheadings | wc -l)" -eq 0 ]; then
 else
   ok "Swap sudah ada: $(free -h | awk '/^Swap:/{print $2}')"
 fi
-# Kurangi agresivitas swap agar tidak menggerus performa
 sysctl -qw vm.swappiness=10 || true
 
 # ==========================================================
@@ -65,12 +78,11 @@ docker compose version >/dev/null 2>&1 || die "Plugin 'docker compose' tidak ada
 ok "Compose: $(docker compose version --short)"
 
 # ==========================================================
-# 3. Firewall — HATI-HATI port SSH (jangan sampai terkunci)
+# 3. Firewall (port SSH dideteksi, tidak hardcode)
 # ==========================================================
 log "Mengatur firewall"
 apt-get install -y -qq ufw >/dev/null 2>&1 || true
 
-# Deteksi port SSH yang sebenarnya dipakai sesi ini
 SSH_PORT="${SSH_PORT:-$(echo "${SSH_CONNECTION:-}" | awk '{print $4}')}"
 if [ -z "${SSH_PORT:-}" ] || ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]]; then
   SSH_PORT="$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}' || true)"
@@ -106,16 +118,23 @@ fi
 chmod +x deploy/*.sh 2>/dev/null || true
 
 # ==========================================================
-# 5. Konfigurasi (.env.production)
+# 5. Konfigurasi
+#    PENTING: `docker compose` hanya membaca file bernama ".env"
+#    (atau lewat --env-file). File ".env.production" DIABAIKAN,
+#    sehingga ${APP_DOMAIN} jadi kosong dan Caddy gagal dengan
+#    "server block without keys". Jadi konfigurasi disimpan di .env
 # ==========================================================
 log "Menyiapkan konfigurasi"
-if [ -f .env.production ]; then
-  ok ".env.production sudah ada — dilewati (tidak ditimpa)"
-  # shellcheck disable=SC1091
-  set -a; . ./.env.production; set +a
+ENV_FILE="$APP_DIR/.env"
+
+if [ -f "$ENV_FILE" ]; then
+  ok ".env sudah ada — dilewati (tidak ditimpa)"
 else
   PUBLIC_IP="$(curl -4 -fsS --max-time 10 https://api.ipify.org || curl -4 -fsS --max-time 10 https://ifconfig.me || true)"
-  [ -n "$PUBLIC_IP" ] || die "Tidak bisa mendeteksi IP publik VPS"
+  if [ -z "$PUBLIC_IP" ]; then
+    PUBLIC_IP="$(hostname -I | awk '{print $1}')"
+    warn "IP publik tidak terdeteksi, pakai IP lokal: $PUBLIC_IP"
+  fi
   NIP_DEFAULT="$(echo "$PUBLIC_IP" | tr '.' '-').nip.io"
 
   echo
@@ -123,37 +142,47 @@ else
   echo "  - Punya domain? ketik, mis: finance.domainkamu.com"
   echo "  - Belum punya? tekan ENTER → pakai $NIP_DEFAULT (HTTPS tetap jalan)"
   printf '  Domain: '
-  read -r DOMAIN
-  [ -n "$DOMAIN" ] || DOMAIN="$NIP_DEFAULT"
+  read -r DOMAIN || true
+  DOMAIN="${DOMAIN:-$NIP_DEFAULT}"
+  # Bersihkan spasi / skema yang mungkin ikut tersalin saat paste
+  DOMAIN="$(echo "$DOMAIN" | tr -d ' \t' | sed 's#^https\?://##; s#/$##')"
+  [ -n "$DOMAIN" ] || die "Domain tidak valid"
 
-  # Password DB: alfanumerik saja agar aman di dalam DATABASE_URL
-  DB_PASS="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)"
+  # Password DB: alfanumerik agar aman di dalam DATABASE_URL.
+  DB_PASS="$(genpass)"
+  [ "${#DB_PASS}" -eq 32 ] || die "Gagal membuat password DB (panjang ${#DB_PASS})"
 
   echo
   printf '  Username login web [biplus]: '
-  read -r BASIC_USER
-  [ -n "$BASIC_USER" ] || BASIC_USER="biplus"
+  read -r BASIC_USER || true
+  [ -n "${BASIC_USER:-}" ] || BASIC_USER="biplus"
 
-  printf '  Password login web (diketik, tidak ditampilkan): '
-  read -rs BASIC_PASS; echo
-  [ -n "$BASIC_PASS" ] || die "Password tidak boleh kosong"
+  printf '  Password login web (tidak ditampilkan): '
+  read -rs BASIC_PASS || true; echo
+  [ -n "${BASIC_PASS:-}" ] || die "Password tidak boleh kosong"
 
   log "Membuat hash password (Caddy)"
-  BASIC_HASH="$(printf '%s' "$BASIC_PASS" | docker run --rm -i caddy:2-alpine caddy hash-password --plaintext - 2>/dev/null | tail -1)"
-  [[ "$BASIC_HASH" == \$* ]] || die "Gagal membuat hash password: $BASIC_HASH"
+  # caddy hash-password butuh ARGUMEN --plaintext, tidak mendukung stdin '-'
+  BASIC_HASH="$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$BASIC_PASS" 2>/dev/null | tail -1 | tr -d '\r')"
+  [[ "$BASIC_HASH" == \$2* ]] || die "Gagal membuat hash password (keluaran: '$BASIC_HASH')"
 
-  cat > .env.production <<EOF
+  umask 077
+  # Hash bcrypt mengandung '$'. Di file .env (yang dibaca Compose), setiap
+  # '$' HARUS di-escape menjadi '$$' agar tidak dianggap variabel.
+  # Compose mengubahnya kembali menjadi '$' saat interpolasi.
+  HASH_ESCAPED="${BASIC_HASH//\$/\$\$}"
+  cat > "$ENV_FILE" <<EOF
 APP_DOMAIN=$DOMAIN
 
 POSTGRES_USER=biplus
 POSTGRES_PASSWORD=$DB_PASS
 POSTGRES_DB=bi_plus_finance
 
+# '$' di-escape sebagai '\$\$' karena file ini dibaca Docker Compose
 BASIC_AUTH_USER=$BASIC_USER
-BASIC_AUTH_HASH=$BASIC_HASH
+BASIC_AUTH_HASH=$HASH_ESCAPED
 EOF
 
-  umask 077
   cat > "$CRED_FILE" <<EOF
 BI+ Finance — kredensial (JANGAN dishare)
 =========================================
@@ -170,24 +199,34 @@ Hapus file ini setelah disimpan aman:
   shred -u $CRED_FILE
 EOF
   umask 022
-  chmod 600 .env.production "$CRED_FILE"
+  chmod 600 "$ENV_FILE" "$CRED_FILE"
+  cp -f "$ENV_FILE" "$APP_DIR/.env.production"
   ok "Konfigurasi dibuat — kredensial: $CRED_FILE"
 fi
+
+# Muat variabel ke shell untuk langkah restore
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
+DBU="${POSTGRES_USER:-biplus}"
+DBN="${POSTGRES_DB:-bi_plus_finance}"
 
 # ==========================================================
 # 6. Build & jalankan
 # ==========================================================
-log "Build & start (3–8 menit di RAM 1–2 GB, harap tunggu)"
+log "Build & start (3–8 menit, harap tunggu)"
 docker compose up -d --build
 
 log "Menunggu database siap"
+DB_READY=0
 for i in $(seq 1 30); do
-  if docker compose exec -T db pg_isready -U "${POSTGRES_USER:-biplus}" >/dev/null 2>&1; then
-    ok "PostgreSQL siap"; break
+  if docker compose exec -T db pg_isready -U "$DBU" >/dev/null 2>&1; then
+    DB_READY=1; ok "PostgreSQL siap"; break
   fi
-  [ "$i" -eq 30 ] && die "PostgreSQL tidak siap setelah 5 menit"
   sleep 10
 done
+[ "$DB_READY" -eq 1 ] || die "PostgreSQL tidak siap setelah 5 menit — cek: docker compose logs db"
 
 log "Status container"
 docker compose ps
@@ -197,42 +236,42 @@ docker compose ps
 # ==========================================================
 SQL_FILE=""
 for f in /root/biplus_local.sql "$APP_DIR/biplus_local.sql" /tmp/biplus_local.sql; do
-  [ -f "$f" ] && SQL_FILE="$f" && break
+  if [ -f "$f" ]; then SQL_FILE="$f"; break; fi
 done
 
 if [ -n "$SQL_FILE" ]; then
   log "Restore database dari $SQL_FILE"
-  DBU="${POSTGRES_USER:-biplus}"
-  DBN="${POSTGRES_DB:-bi_plus_finance}"
-
-  # Skema dibuat ulang: migrate deploy sudah membuat tabel kosong,
-  # restore tanpa drop akan gagal "relation already exists".
+  # migrate deploy sudah membuat tabel kosong; restore butuh skema bersih
   docker compose exec -T db psql -U "$DBU" -d "$DBN" -q \
-    -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+    -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null
   ok "Skema dikosongkan"
 
   docker compose cp "$SQL_FILE" db:/tmp/restore.sql
-  docker compose exec -T db psql -U "$DBU" -d "$DBN" -q -f /tmp/restore.sql
-  docker compose exec -T db rm -f /tmp/restore.sql
+  if docker compose exec -T db psql -U "$DBU" -d "$DBN" -q -f /tmp/restore.sql 2>/tmp/restore.err; then
+    ok "Restore selesai"
+  else
+    warn "Ada pesan saat restore (biasanya aman):"
+    head -5 /tmp/restore.err 2>/dev/null | sed 's/^/    /' || true
+  fi
+  docker compose exec -T db rm -f /tmp/restore.sql || true
 
   log "Verifikasi data"
   docker compose exec -T db psql -U "$DBU" -d "$DBN" -c \
-    'SELECT (SELECT COUNT(*) FROM "InventoryItem") AS inventory,
-            (SELECT COUNT(*) FROM "Sale")          AS sale,
-            (SELECT COUNT(*) FROM "CashTransaction") AS kas;'
+    'SELECT (SELECT COUNT(*) FROM "InventoryItem")       AS inventory,
+            (SELECT COUNT(*) FROM "Sale")                AS sale,
+            (SELECT COUNT(*) FROM "CashTransaction")     AS kas,
+            (SELECT COUNT(*) FROM "PayLaterInstallment") AS cicilan;' || true
 else
-  warn "File biplus_local.sql tidak ditemukan — database masih kosong."
+  warn "biplus_local.sql tidak ditemukan — database masih kosong."
   warn "Kirim dari Windows:  scp -P <portSSH> biplus_local.sql root@<IP>:/root/"
-  warn "lalu restore manual (lihat deploy/README.md bagian 6)."
+  warn "lalu jalankan ulang: sudo bash /root/bootstrap.sh"
 fi
 
 # ==========================================================
 # 8. Foto unit (opsional)
 # ==========================================================
-if [ -d /tmp/units ]; then
+if [ -d /tmp/units ] && [ "$(ls -A /tmp/units 2>/dev/null | wc -l)" -gt 0 ]; then
   log "Menyalin foto unit"
-  mkdir -p "$APP_DIR/public/uploads/units"
-  cp -f /tmp/units/* "$APP_DIR/public/uploads/units/" 2>/dev/null || true
   docker compose cp /tmp/units/. app:/app/public/uploads/units/ 2>/dev/null || true
   docker compose restart app >/dev/null
   ok "Foto disalin: $(ls /tmp/units | wc -l) file"
@@ -241,21 +280,27 @@ else
 fi
 
 # ==========================================================
-# 9. Ringkasan
+# 9. Ringkasan + cek kesehatan
 # ==========================================================
-DOMAIN_FINAL="$(grep -E '^APP_DOMAIN=' .env.production | cut -d= -f2-)"
+DOMAIN_FINAL="$(grep -E '^APP_DOMAIN=' "$ENV_FILE" | cut -d= -f2-)"
+log "Memeriksa kesehatan aplikasi"
+HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "http://127.0.0.1:3000/" || echo 000)"
+echo "  app internal :3000 -> HTTP $HTTP_CODE"
+docker compose ps --format '{{.Service}} => {{.State}}' 2>/dev/null | sed 's/^/  /' || true
+
 log "SELESAI"
-echo "  URL     : https://$DOMAIN_FINAL"
-echo "  Kredensial: sudo cat $CRED_FILE"
+echo "  URL        : https://$DOMAIN_FINAL"
+echo "  Kredensial : sudo cat $CRED_FILE"
 echo
-echo "  Perintah harian (jalankan di $APP_DIR):"
+echo "  Perintah harian (di $APP_DIR):"
 echo "    docker compose logs -f app"
 echo "    docker compose restart app"
 echo "    ./deploy/backup.sh"
 echo
 if [[ "$DOMAIN_FINAL" == *.nip.io ]]; then
-  warn "Kamu memakai $DOMAIN_FINAL — sertifikat HTTPS butuh port 80 terbuka."
+  echo "  Domain nip.io dipakai — HTTPS otomatis, tidak perlu beli domain."
 else
   echo "  Pastikan DNS A record $DOMAIN_FINAL sudah mengarah ke IP VPS ini."
+  echo "  Cek dengan: dig +short $DOMAIN_FINAL"
 fi
-echo "  Tunggu ~30 detik, lalu buka di browser."
+echo "  Tunggu ~30 detik, lalu buka https://$DOMAIN_FINAL"

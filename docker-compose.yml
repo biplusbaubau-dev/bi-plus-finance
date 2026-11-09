@@ -83,6 +83,10 @@ services:
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       BASIC_AUTH_USER: ${BASIC_AUTH_USER}
+      # Di .env, hash bcrypt ditulis dengan $ di-escape menjadi $$  (mis.
+      # $$2a$$14$$...). Compose mengubah $$ kembali menjadi $ saat
+      # interpolasi, sehingga Caddy menerima hash yang utuh. Tanpa escape,
+      # Compose mengira $2a / $14 adalah variabel -> hash rusak -> login gagal.
       BASIC_AUTH_HASH: ${BASIC_AUTH_HASH}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
