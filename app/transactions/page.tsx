@@ -3,6 +3,9 @@ import { ExpenseForm, InstallmentForm, OtherIncomeForm, SaleForm, ShopeeBillForm
 import { rupiah, dateId } from "@/lib/format";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TransactionsPage() {
   const [units, pending, recentSales] = await Promise.all([
     prisma.inventoryItem.findMany({ where: { status: { in: ["IN_STOCK", "RESERVED"] } }, select: { id: true, code: true, model: true, storage: true }, orderBy: { code: "asc" } }),

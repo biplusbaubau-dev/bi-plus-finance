@@ -2,6 +2,9 @@ import Link from "next/link";
 import { dashboardData, trendData } from "@/lib/finance";
 import { dateId, rupiah } from "@/lib/format";
 import { TrendChart } from "@/components/trend-chart";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 function getPeriod(range?: string, from?: string, to?: string) { if (from || to) return { from: from ? new Date(from + "T00:00:00") : undefined, to: to ? new Date(to + "T23:59:59") : undefined }; const now = new Date(); const start = new Date(now); if (range === "today") start.setHours(0, 0, 0, 0); else if (range === "7d") start.setDate(now.getDate() - 6); else if (range === "month") start.setDate(1); else if (range === "last") { start.setMonth(now.getMonth() - 1, 1); const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59); return { from: start, to: end }; } else return {}; return { from: start, to: now }; }
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ range?: string; from?: string; to?: string }> }) {
   const { range, from, to } = await searchParams;

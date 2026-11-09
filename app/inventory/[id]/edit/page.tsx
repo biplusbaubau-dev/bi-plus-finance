@@ -5,6 +5,9 @@ import { duplicateInventory } from "@/app/actions";
 import { EditInventoryForm, SellThisUnitForm } from "@/components/forms";
 import { UnitImageGallery } from "@/components/unit-image-gallery";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function EditInventoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const item = await prisma.inventoryItem.findUnique({

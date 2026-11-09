@@ -20,7 +20,10 @@ RUN apk add --no-cache libc6-compat openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# Prisma butuh DATABASE_URL saat generate; nilainya tidak dipakai untuk build
+# Prisma butuh DATABASE_URL hanya untuk `prisma generate` (tidak connect).
+# `npm run build` TIDAK menyentuh database karena semua halaman memakai
+# `export const dynamic = "force-dynamic"` — tanpa itu, Next.js mencoba
+# prerender halaman dan gagal: "Can't reach database server at localhost:5432".
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npx prisma generate && npm run build
 

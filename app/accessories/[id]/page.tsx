@@ -5,6 +5,9 @@ import { PurchaseForm, SellForm } from "../forms";
 import { dateId, rupiah } from "@/lib/format";
 import { deleteAccessory, deleteAccessoryTransaction } from "./actions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const payLabel: Record<string, string> = {
   CASH: "Tunai", TRANSFER: "Transfer", EWALLET: "E-wallet", PAYLATER: "PayLater", OTHER: "Lainnya",
 };

@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { dateId, rupiah } from "@/lib/format";
 import { ledgerLabel } from "@/lib/finance";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function CashflowPage() {
   const [items, debts] = await Promise.all([
     prisma.cashTransaction.findMany({ orderBy: [{ date: "asc" }, { createdAt: "asc" }] }),

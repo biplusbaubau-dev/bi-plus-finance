@@ -1,1 +1,4 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function SettingsPage() { return <div className="space-y-4"><div><p className="text-sm text-zinc-500">Versi awal</p><h1 className="text-2xl font-bold sm:text-3xl">Pengaturan</h1></div><div className="card text-sm leading-6 text-zinc-600">Saldo kas tidak dapat diubah manual. Semua saldo dihitung dari ledger pembelian, penjualan, pengeluaran, dan pemasukan lain. Import spreadsheet akan ditambahkan setelah alur inti stabil.</div></div>; }

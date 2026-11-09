@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { rupiah, dateId } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function InventoryPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = "unit" } = await searchParams;
 
