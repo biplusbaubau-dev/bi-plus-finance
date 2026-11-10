@@ -52,61 +52,108 @@ export async function payInstallment(form: FormData) {
   redirect("/transactions");
 }
 
+class BillValidationError extends Error {}
+
 export async function payShopeeBill(form: FormData) {
   const paidAt = date(form, "paidAt");
   const amount = num(form, "amount");
-  if (amount <= 0) throw new Error("Nominal bayar harus lebih dari 0.");
   const kind = text(form, "kind") === "LOAN" ? "LOAN" : "PAYLATER";
-  await prisma.$transaction(async (tx) => {
-    const pending = await tx.payLaterInstallment.findMany({
-      where: {
-        status: "PENDING",
-        debt: {
-          kind,
-          OR: [
-            { purchase: { inventoryItem: { status: { not: "RETURNED" } } } },
-            { accessoryId: { not: null } },
-            { purchaseId: null, accessoryId: null },
-          ],
+  // Pesan validasi dikirim balik lewat query string: `throw` di production
+  // disembunyikan Next.js, jadi user tidak akan melihat alasannya.
+  const fail = (msg: string): never => redirect(`/transactions?err=${encodeURIComponent(msg)}`);
+  if (amount <= 0) fail("Nominal bayar harus lebih dari 0.");
+  try {
+    await prisma.$transaction(async (tx) => {
+      const pending = await tx.payLaterInstallment.findMany({
+        where: {
+          status: "PENDING",
+          debt: {
+            kind,
+            OR: [
+              { purchase: { inventoryItem: { status: { not: "RETURNED" } } } },
+              { accessoryId: { not: null } },
+              { purchaseId: null, accessoryId: null },
+            ],
+          },
         },
-      },
-      orderBy: [{ dueDate: "asc" }, { installmentNo: "asc" }],
-      include: { debt: true },
-    });
-    const totalSisa = pending.reduce((s, i) => s + Math.max(0, i.amount - i.paidAmount), 0);
-    if (totalSisa <= 0) throw new Error("Tidak ada tagihan yang tersisa.");
-    if (amount > totalSisa) throw new Error(`Nominal (${amount}) melebihi total tagihan tersisa (${totalSisa}).`);
-    let left = amount;
-    const codes = new Set<string>();
-    for (const item of pending) {
-      if (left <= 0) break;
-      const sisa = item.amount - item.paidAmount;
-      if (sisa <= 0) continue;
-      const bayar = Math.min(sisa, left);
-      left -= bayar;
-      const paidAmount = item.paidAmount + bayar;
-      const lunas = paidAmount >= item.amount;
-      await tx.payLaterInstallment.update({
-        where: { id: item.id },
-        data: { paidAmount, status: lunas ? "PAID" : "PENDING", paidAt: lunas ? paidAt : null },
+        orderBy: [{ dueDate: "asc" }, { installmentNo: "asc" }],
+        include: { debt: true },
       });
-      codes.add(item.debt.code);
-    }
-    // Dulu fungsi ini TIDAK membuat transaksi kas, jadi uang keluar tapi saldo tidak turun.
-    await tx.cashTransaction.create({
-      data: {
-        date: paidAt,
-        type: "PAYLATER_PAYMENT",
-        description: `Bayar tagihan ${kind === "LOAN" ? "pinjaman" : "PayLater"} ${[...codes].join(", ")}`,
-        expense: amount,
-        paymentMethod: "PAYLATER",
-      },
+      const totalSisa = pending.reduce((s, i) => s + Math.max(0, i.amount - i.paidAmount), 0);
+      if (totalSisa <= 0) throw new BillValidationError("Tidak ada tagihan yang tersisa.");
+      if (amount > totalSisa) throw new BillValidationError(`Nominal Rp${amount.toLocaleString("id-ID")} melebihi total tagihan tersisa Rp${totalSisa.toLocaleString("id-ID")}.`);
+      // Alokasi dibuat GENAP: satu kali bayar hanya boleh melunasi cicilan utuh
+      // (mis. 2 minggu = 2 x Rp150.000). Pengecualian hanya untuk cicilan terakhir
+      // yang tersisa (mis. sisa Rp100.000 boleh dibayar sebagian) dan pelunasan penuh.
+      type OpenInstallment = {
+        id: string;
+        installmentNo: number;
+        amount: number;
+        paidAmount: number;
+        debt: { code: string };
+      };
+      const open: OpenInstallment[] = pending.filter((i: OpenInstallment) => i.amount - i.paidAmount > 0);
+      const sisaList: number[] = open.map((i) => i.amount - i.paidAmount);
+      const cumulative: number[] = [];
+      sisaList.reduce((acc: number, v: number, idx: number) => (cumulative[idx] = acc + v), 0);
+      const plan: { item: OpenInstallment; bayar: number }[] = [];
+      let left = amount;
+      for (let idx = 0; idx < open.length && left > 0; idx++) {
+        const item = open[idx];
+        const sisa = sisaList[idx];
+        if (left >= sisa) {
+          plan.push({ item, bayar: sisa });
+          left -= sisa;
+          continue;
+        }
+        if (idx === open.length - 1) {
+          plan.push({ item, bayar: left });
+          left = 0;
+          continue;
+        }
+        const belowIdx = cumulative.reduce((acc, v, i) => (v <= amount ? i : acc), -1);
+        const below = belowIdx >= 0 ? cumulative[belowIdx] : 0;
+        const aboveIdx = cumulative.findIndex((v) => v > amount);
+        const above = aboveIdx >= 0 ? cumulative[aboveIdx] : cumulative[cumulative.length - 1];
+        const opsi: string[] = [];
+        if (belowIdx >= 0) opsi.push(`Rp${below.toLocaleString("id-ID")} (${belowIdx + 1} cicilan)`);
+        opsi.push(`Rp${above.toLocaleString("id-ID")} (${aboveIdx + 1} cicilan)`);
+        throw new BillValidationError(
+          `Nominal Rp${amount.toLocaleString("id-ID")} akan memotong cicilan #${item.installmentNo} jadi tidak genap. ` +
+            `Pilih ${opsi.join(" atau ")}.`,
+        );
+      }
+      const codes = new Set<string>();
+      for (const { item, bayar } of plan) {
+        const paidAmount = item.paidAmount + bayar;
+        const lunas = paidAmount >= item.amount;
+        await tx.payLaterInstallment.update({
+          where: { id: item.id },
+          data: { paidAmount, status: lunas ? "PAID" : "PENDING", paidAt: lunas ? paidAt : null },
+        });
+        codes.add(item.debt.code);
+      }
+      // Dulu fungsi ini TIDAK membuat transaksi kas, jadi uang keluar tapi saldo tidak turun.
+      await tx.cashTransaction.create({
+        data: {
+          date: paidAt,
+          type: "PAYLATER_PAYMENT",
+          description: `Bayar tagihan ${kind === "LOAN" ? "pinjaman" : "PayLater"} ${[...codes].join(", ")}`,
+          expense: amount,
+          paymentMethod: "PAYLATER",
+        },
+      });
     });
-  });
+  } catch (e) {
+    // Validasi bisnis dilempar sebagai BillValidationError supaya alasannya bisa
+    // ditampilkan ke user lewat query string (throw biasa disembunyikan Next.js).
+    if (e instanceof BillValidationError) fail(e.message);
+    throw e;
+  }
   revalidatePath("/");
   revalidatePath("/cashflow");
   revalidatePath("/transactions");
-  redirect("/transactions");
+  redirect(`/transactions?ok=${encodeURIComponent(`Pembayaran Rp${amount.toLocaleString("id-ID")} tersimpan.`)}`);
 }
 export async function createSale(form: FormData) { const inventoryItemId = text(form, "inventoryItemId"); const salePrice = num(form, "salePrice"); const sellingCost = num(form, "sellingCost"); const saleDate = date(form, "saleDate"); await prisma.$transaction(async (tx) => { const item = await tx.inventoryItem.findUniqueOrThrow({ where: { id: inventoryItemId } }); if (item.status === InventoryStatus.SOLD) throw new Error("Unit ini sudah terjual."); if (item.status === InventoryStatus.RETURNED) throw new Error("Unit retur tidak dapat dijual."); await tx.inventoryItem.update({ where: { id: item.id }, data: { status: "SOLD" } }); const sale = await tx.sale.create({ data: { invoiceNo: makeInvoice(), date: saleDate, salePrice, sellingCost, paymentMethod: payment(form), customerName: text(form, "customerName") || null, notes: text(form, "notes") || null, inventoryItemId } }); await tx.cashTransaction.create({ data: { date: saleDate, type: "SALE", description: `Penjualan ${item.model} (${item.code})`, income: salePrice - sellingCost, paymentMethod: payment(form), saleId: sale.id } }); }); revalidatePath("/"); revalidatePath("/inventory"); revalidatePath("/cashflow"); redirect("/inventory"); }
 export async function createExpense(form: FormData) { const expense = await prisma.$transaction(async (tx) => { const item = await tx.expense.create({ data: { date: date(form, "date"), category: text(form, "category") as ExpenseCategory, amount: num(form, "amount"), paymentMethod: payment(form), description: text(form, "description"), notes: text(form, "notes") || null } }); await tx.cashTransaction.create({ data: { date: item.date, type: "EXPENSE", description: item.description, expense: item.amount, paymentMethod: item.paymentMethod, expenseId: item.id } }); return item; }); void expense; revalidatePath("/"); revalidatePath("/cashflow"); redirect("/transactions"); }

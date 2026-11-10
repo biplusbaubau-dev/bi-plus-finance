@@ -64,17 +64,106 @@ export function InstallmentForm({ installments }: { installments: { id: string; 
   );
 }
 
-export function ShopeeBillForm({ totalPending, kind = "PAYLATER" }: { totalPending: number; kind?: "PAYLATER" | "LOAN" }) {
+export function ShopeeBillForm({
+  totalPending,
+  kind = "PAYLATER",
+  installments = [],
+}: {
+  totalPending: number;
+  kind?: "PAYLATER" | "LOAN";
+  installments?: { no: number; due: string; remaining: number }[];
+}) {
   const isLoan = kind === "LOAN";
+  const satuan = isLoan ? "minggu" : "bulan";
+  const [amount, setAmount] = useState<number>(installments[0]?.remaining ?? 0);
+  const nominalPeriode = installments[0]?.remaining ?? 0;
+
+  // Preview alokasi (logika sama dengan server): selalu genap per cicilan,
+  // kecuali cicilan terakhir yang tersisa.
+  const preview: { no: number; due: string; bayar: number; lunas: boolean }[] = [];
+  let left = amount;
+  for (const it of installments) {
+    if (left <= 0) break;
+    const bayar = Math.min(it.remaining, left);
+    left -= bayar;
+    preview.push({ no: it.no, due: it.due, bayar, lunas: bayar >= it.remaining });
+  }
+  const kepotong = preview.some((p, i) => !p.lunas && i < installments.length - 1);
+  const lunasCount = preview.filter((p) => p.lunas).length;
+  const maksPeriode = Math.min(installments.length, 12);
+  const opsiPeriode = Array.from({ length: maksPeriode }, (_, i) =>
+    installments.slice(0, i + 1).reduce((s, it) => s + it.remaining, 0),
+  );
+
   return (
     <form action={payShopeeBill} className="grid gap-3">
       <input type="hidden" name="kind" value={kind} />
       <p className="text-sm text-zinc-500">
-        Sisa tagihan {isLoan ? "pinjaman" : "PayLater"}: <b>Rp {totalPending.toLocaleString("id-ID")}</b>.
-        Nominal boleh sebagian — otomatis dipotong ke cicilan terlama dan dicatat sebagai kas keluar.
+        Sisa tagihan {isLoan ? "pinjaman" : "PayLater"}: <b>Rp {totalPending.toLocaleString("id-ID")}</b>
+        {nominalPeriode > 0 && (
+          <>
+            {" · "}
+            {isLoan ? "per minggu" : "per bulan"}: <b>Rp {nominalPeriode.toLocaleString("id-ID")}</b>
+          </>
+        )}
+        . Pembayaran dibuat genap per {satuan} — bisa bayar beberapa {satuan} sekaligus.
       </p>
       <label>Tanggal bayar<input name="paidAt" type="date" required /></label>
-      <label>Total dibayar<input name="amount" type="number" min={1} max={totalPending} step={1} required /></label>
+      {installments.length > 0 && (
+        <div className="grid gap-2">
+          <span className="text-sm font-medium">Bayar berapa {satuan}?</span>
+          <div className="flex flex-wrap gap-2">
+            {opsiPeriode.map((nilai, i) => {
+              const aktif = amount === nilai;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setAmount(nilai)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                    aktif
+                      ? "border-blue-600 bg-blue-600 text-white"
+                      : "border-zinc-300 bg-white text-zinc-700 hover:border-blue-400"
+                  }`}
+                >
+                  {i + 1} {satuan} · Rp{nilai.toLocaleString("id-ID")}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <label>
+        Total dibayar
+        <input
+          name="amount"
+          type="number"
+          min={1}
+          max={totalPending}
+          step={1}
+          required
+          value={amount || ""}
+          onChange={(e) => setAmount(Number(e.target.value))}
+        />
+      </label>
+      {preview.length > 0 && (
+        <div
+          className={`rounded-lg border p-3 text-xs ${
+            kepotong ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-300 bg-emerald-50 text-emerald-900"
+          }`}
+        >
+          <p className="font-semibold">
+            {kepotong
+              ? `Nominal ini memotong ${satuan} ke-${lunasCount + 1} jadi tidak genap — server akan menolak. Pilih nominal tombol di atas.`
+              : `Lunas ${lunasCount} ${satuan} penuh`}
+          </p>
+          <p className="mt-1">
+            {preview
+              .map((p) => `#${p.no} (${p.due})${p.lunas ? "" : ` · Rp${p.bayar.toLocaleString("id-ID")}`}`)
+              .join(", ")}
+          </p>
+        </div>
+      )}
       <button className="btn">Bayar tagihan</button>
     </form>
   );
