@@ -73,15 +73,31 @@ export default async function CashflowPage() {
                     <span className="text-zinc-500">Sisa</span>
                     <span className={`font-bold ${remaining <= 0 ? "text-emerald-600" : "text-red-600"}`}>Rp{remaining.toLocaleString("id-ID")}</span>
                   </div>
-                  {/* Installments */}
-                  <div className="mt-3 flex gap-1">
-                    {d.installments.map((i) => (
-                      <div key={i.id} className={`flex-1 rounded p-1.5 text-center text-[10px] font-semibold ${i.paidAmount >= i.amount ? "bg-emerald-50 text-emerald-700" : i.paidAmount > 0 ? "bg-sky-50 text-sky-700" : "bg-amber-50 text-amber-700"}`}>
+                  {/* Installments: ringkasan + jendela 10 cicilan pertama */}
+                  {(() => {
+                    const next = d.installments.find((i) => i.paidAmount < i.amount);
+                    if (!next) return null;
+                    return (
+                      <div className="mt-3 rounded bg-zinc-50 px-2 py-1.5 text-xs text-zinc-600">
+                        Berikutnya <b>{next.dueDate.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</b>
+                        {" · "}Rp{(next.amount - next.paidAmount).toLocaleString("id-ID")}
+                        {" · "}{d.installments.length} cicilan
+                      </div>
+                    );
+                  })()}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {d.installments.slice(0, 10).map((i) => (
+                      <div key={i.id} className={`rounded px-2 py-1 text-center text-[10px] font-semibold ${i.paidAmount >= i.amount ? "bg-emerald-50 text-emerald-700" : i.paidAmount > 0 ? "bg-sky-50 text-sky-700" : "bg-amber-50 text-amber-700"}`}>
                         <div>#{i.installmentNo}</div>
-                        <div className="truncate">{(i.dueDate.getMonth() + 1).toString().padStart(2, "0")}/{i.dueDate.getFullYear().toString().slice(-2)}</div>
-                        {i.paidAmount > 0 && i.paidAmount < i.amount && <div className="truncate">{(i.paidAmount / 1000).toFixed(0)}rb</div>}
+                        <div>{(i.dueDate.getMonth() + 1).toString().padStart(2, "0")}/{i.dueDate.getDate().toString().padStart(2, "0")}</div>
                       </div>
                     ))}
+                    {d.installments.length > 10 && (
+                      <div className="rounded bg-zinc-100 px-2 py-1 text-center text-[10px] font-semibold text-zinc-600">
+                        +{d.installments.length - 10}
+                        <div>lagi</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
