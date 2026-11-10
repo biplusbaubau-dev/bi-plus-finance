@@ -47,3 +47,7 @@ Thumbs.db
 
 # Cache TS
 *.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc

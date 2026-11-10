@@ -1,0 +1,60 @@
+{
+  "sales": [
+    {
+      "code": "BI-015",
+      "salePrice": 2550000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-05",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-016",
+      "salePrice": 2850000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-03",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-017",
+      "salePrice": 2100000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-10",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-018",
+      "salePrice": 3525000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-08",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-019",
+      "salePrice": 2500000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-06",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-020",
+      "salePrice": 2900000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-06",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-021",
+      "salePrice": 3900000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-03",
+      "paymentMethod": "CASH"
+    },
+    {
+      "code": "BI-022",
+      "salePrice": 2900000,
+      "sellingCost": 0,
+      "saleDate": "2026-11-09",
+      "paymentMethod": "CASH"
+    }
+  ]
+}

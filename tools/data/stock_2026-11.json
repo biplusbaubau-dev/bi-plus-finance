@@ -1,0 +1,108 @@
+{
+  "units": [
+    {
+      "code": "BI-015",
+      "brand": "Apple",
+      "model": "iPhone 11 WiFi Only",
+      "storage": "64GB",
+      "color": "Black",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 1900000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": null
+    },
+    {
+      "code": "BI-016",
+      "brand": "Apple",
+      "model": "iPhone 11 WiFi Only",
+      "storage": "128GB",
+      "color": "White",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 2300000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": null
+    },
+    {
+      "code": "BI-017",
+      "brand": "Apple",
+      "model": "iPhone XR WiFi Only",
+      "storage": "64GB",
+      "color": "Various",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 1600000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": "Second"
+    },
+    {
+      "code": "BI-018",
+      "brand": "Apple",
+      "model": "iPhone 11 All Operator",
+      "storage": "64GB",
+      "color": "Red",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 2900000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": null
+    },
+    {
+      "code": "BI-019",
+      "brand": "Apple",
+      "model": "iPhone XR WiFi Only",
+      "storage": "64GB",
+      "color": "Various",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 1750000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": "WiFi only, bukan bypass"
+    },
+    {
+      "code": "BI-020",
+      "brand": "Apple",
+      "model": "iPhone 11 WiFi Only",
+      "storage": "64GB",
+      "color": "Various",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 2000000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": null
+    },
+    {
+      "code": "BI-021",
+      "brand": "Apple",
+      "model": "iPhone 11 All Operator",
+      "storage": "128GB",
+      "color": "Various",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 3500000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": null
+    },
+    {
+      "code": "BI-022",
+      "brand": "Apple",
+      "model": "iPhone 11 WiFi Only",
+      "storage": "128GB",
+      "color": "Various",
+      "condition": "Good",
+      "purchaseDate": "2026-11-01",
+      "purchasePrice": 1900000,
+      "additionalCost": 0,
+      "purchasePaymentMethod": "CASH",
+      "notes": null
+    }
+  ]
+}
