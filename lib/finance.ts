@@ -49,6 +49,12 @@ export async function dashboardData(period: Period = {}) {
   }, 0);
   const daysUntilDue = (due: Date) => Math.ceil((due.getTime() - Date.now()) / 86400000);
 
+  const totalAssets = totalInventoryValue + assetValue + cashBalance;
+  // Aset bersih = aset bruto dikurangi sisa utang (PayLater) yang belum dibayar.
+  // PayLater tidak pernah masuk sebagai komponen negatif di totalAssets, jadi
+  // tanpa ini angkanya terlihat lebih besar dari kekayaan bersih sebenarnya.
+  const netAssets = totalAssets - payLaterOutstanding;
+
   const pendingInstallments = installments.map((i) => ({
     id: i.id,
     debtId: i.debtId,
@@ -70,7 +76,7 @@ export async function dashboardData(period: Period = {}) {
   incomes.forEach((item) => { ensureMonth(item.date).profit += item.amount; });
   ledger.forEach((item) => { ensureMonth(item.date).cashflow += item.income - item.expense; });
 
-  return { omzet, cogs, totalExpense, grossProfit, netProfit, cashBalance, inventoryValue: totalInventoryValue, unitValue: inventoryValue, accessoryValue, assetValue, totalAssets: totalInventoryValue + assetValue + cashBalance, estimatedProfit, payLaterOutstanding, payLaterDueThisMonth, payLaterCount: installments.length, available: available.length, sold: inventory.filter((i) => i.status === InventoryStatus.SOLD).length, sales, expenses, ledger, monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), recentSales, pendingInstallments };}
+  return { omzet, cogs, totalExpense, grossProfit, netProfit, cashBalance, inventoryValue: totalInventoryValue, unitValue: inventoryValue, accessoryValue, assetValue, totalAssets, netAssets, estimatedProfit, payLaterOutstanding, payLaterDueThisMonth, payLaterCount: installments.length, available: available.length, sold: inventory.filter((i) => i.status === InventoryStatus.SOLD).length, sales, expenses, ledger, monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), recentSales, pendingInstallments };}
 
 export function makeInvoice() { return `INV-${new Date().toISOString().slice(2, 10).replaceAll("-", "")}-${Math.floor(Math.random() * 900 + 100)}`; }
 export const ledgerLabel: Record<CashTransactionType, string> = { SALE: "Penjualan", PURCHASE: "Pembelian stok", EXPENSE: "Pengeluaran", OTHER_INCOME: "Pemasukan lain", PAYLATER_PAYMENT: "Bayar cicilan PayLater" };

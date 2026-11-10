@@ -23,6 +23,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ["Modal di inventory", data.inventoryValue],
     ["Nilai aset/alat", data.assetValue],
     ["Total aset", data.totalAssets],
+    ["Total aset bersih", data.netAssets],
     ["Sisa PayLater", data.payLaterOutstanding],
     ["Jatuh tempo bulan ini", data.payLaterDueThisMonth],
   ];
