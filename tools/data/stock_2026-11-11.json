@@ -1,0 +1,60 @@
+{
+  "units": [
+    {
+      "code": "BI-023",
+      "brand": "Apple",
+      "model": "iPhone 11 All Operator",
+      "storage": "64GB",
+      "color": "White",
+      "condition": "Good",
+      "purchaseDate": "2026-11-11",
+      "purchasePrice": 2000000,
+      "additionalCost": 0,
+      "askingPrice": 3100000,
+      "purchasePaymentMethod": "CASH",
+      "notes": "Face ID off"
+    },
+    {
+      "code": "BI-024",
+      "brand": "Apple",
+      "model": "iPhone 11 All Operator",
+      "storage": "64GB",
+      "color": "White",
+      "condition": "Good",
+      "purchaseDate": "2026-11-11",
+      "purchasePrice": 2200000,
+      "additionalCost": 0,
+      "askingPrice": 3000000,
+      "purchasePaymentMethod": "CASH",
+      "notes": "Face ID off"
+    },
+    {
+      "code": "BI-025",
+      "brand": "Apple",
+      "model": "iPhone 11 All Operator",
+      "storage": "128GB",
+      "color": "Black",
+      "condition": "Good",
+      "purchaseDate": "2026-11-11",
+      "purchasePrice": 2500000,
+      "additionalCost": 0,
+      "askingPrice": 3350000,
+      "purchasePaymentMethod": "CASH",
+      "notes": "Face ID off, power button off"
+    },
+    {
+      "code": "AND-003",
+      "brand": "Poco",
+      "model": "Poco F7 Limited",
+      "storage": "512GB",
+      "color": "White",
+      "condition": "Good",
+      "purchaseDate": "2026-11-11",
+      "purchasePrice": 4300000,
+      "additionalCost": 0,
+      "askingPrice": 5000000,
+      "purchasePaymentMethod": "CASH",
+      "notes": "RAM 12+12, edisi Limited"
+    }
+  ]
+}
