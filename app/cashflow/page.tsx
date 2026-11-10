@@ -34,15 +34,21 @@ export default async function CashflowPage() {
         <h1 className="text-2xl font-bold sm:text-3xl">Cashflow</h1>
       </div>
 
-      {/* PayLater debts */}
-      {debts.length > 0 && (
-        <section className="card">
-          <h2 className="mb-4 text-lg font-bold">Hutang PayLater</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {debts.map((d) => {
-              const paid = d.installments.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0);
-              const remaining = d.totalLiability - paid;
-              const progress = d.totalLiability > 0 ? Math.round((paid / d.totalLiability) * 100) : 0;
+      {/* Utang: PayLater dan pinjaman dipisah */}
+      {[
+        { title: "Hutang PayLater", kinds: ["PAYLATER"], empty: "Tidak ada utang PayLater." },
+        { title: "Pinjaman (PNM)", kinds: ["LOAN"], empty: "Tidak ada pinjaman." },
+      ].map((group) => {
+        const list = debts.filter((d) => group.kinds.includes(d.kind));
+        if (list.length === 0) return null;
+        return (
+          <section className="card" key={group.title}>
+            <h2 className="mb-4 text-lg font-bold">{group.title}</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {list.map((d) => {
+                const paid = d.installments.reduce((s, i) => s + i.paidAmount, 0);
+                const remaining = d.totalLiability - paid;
+                const progress = d.totalLiability > 0 ? Math.round((paid / d.totalLiability) * 100) : 0;
               return (
                 <div key={d.id} className="rounded-xl border border-zinc-200 p-4">
                   <div className="flex items-start justify-between">
@@ -70,18 +76,20 @@ export default async function CashflowPage() {
                   {/* Installments */}
                   <div className="mt-3 flex gap-1">
                     {d.installments.map((i) => (
-                      <div key={i.id} className={`flex-1 rounded p-1.5 text-center text-[10px] font-semibold ${i.status === "PAID" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                      <div key={i.id} className={`flex-1 rounded p-1.5 text-center text-[10px] font-semibold ${i.paidAmount >= i.amount ? "bg-emerald-50 text-emerald-700" : i.paidAmount > 0 ? "bg-sky-50 text-sky-700" : "bg-amber-50 text-amber-700"}`}>
                         <div>#{i.installmentNo}</div>
                         <div className="truncate">{(i.dueDate.getMonth() + 1).toString().padStart(2, "0")}/{i.dueDate.getFullYear().toString().slice(-2)}</div>
+                        {i.paidAmount > 0 && i.paidAmount < i.amount && <div className="truncate">{(i.paidAmount / 1000).toFixed(0)}rb</div>}
                       </div>
                     ))}
                   </div>
                 </div>
               );
             })}
-          </div>
-        </section>
-      )}
+            </div>
+          </section>
+        );
+      })}
 
       {/* Ledger */}
       <section className="card overflow-x-auto">

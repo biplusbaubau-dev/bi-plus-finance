@@ -42,25 +42,31 @@ export async function dashboardData(period: Period = {}) {
   const assetValue = accessories.filter((a) => a.isAsset).reduce((sum, a) => sum + a.stock * a.purchasePrice, 0);
   const totalInventoryValue = inventoryValue + accessoryValue;
   const estimatedProfit = available.reduce((sum, item) => sum + Math.max(0, (item.askingPrice ?? 0) - item.purchasePrice - item.additionalCost), 0);
-  // Sum remaining from ALL debts (both HP and accessories)
-  const payLaterOutstanding = debts.reduce((sum, d) => {
-    const paid = d.installments.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0);
-    return sum + (d.totalLiability - paid);
-  }, 0);
+  // Sisa per utang = jumlah (amount - paidAmount) semua cicilan.
+  // Dihitung per cicilan supaya pembayaran sebagian ikut terhitung.
+  const remainingOf = (d: { installments: { amount: number; paidAmount: number }[] }) =>
+    d.installments.reduce((s, i) => s + Math.max(0, i.amount - i.paidAmount), 0);
+  // PayLater (Shopee dll) dan pinjaman (PNM dll) dipisah supaya tidak tercampur di dashboard.
+  const payLaterOutstanding = debts.filter((d) => d.kind === "PAYLATER").reduce((sum, d) => sum + remainingOf(d), 0);
+  const loanOutstanding = debts.filter((d) => d.kind === "LOAN").reduce((sum, d) => sum + remainingOf(d), 0);
   const daysUntilDue = (due: Date) => Math.ceil((due.getTime() - Date.now()) / 86400000);
 
   const totalAssets = totalInventoryValue + assetValue + cashBalance;
-  // Aset bersih = aset bruto dikurangi sisa utang (PayLater) yang belum dibayar.
-  // PayLater tidak pernah masuk sebagai komponen negatif di totalAssets, jadi
+  // Aset bersih = aset bruto dikurangi SEMUA sisa utang (PayLater + pinjaman).
+  // Utang tidak pernah masuk sebagai komponen negatif di totalAssets, jadi
   // tanpa ini angkanya terlihat lebih besar dari kekayaan bersih sebenarnya.
-  const netAssets = totalAssets - payLaterOutstanding;
+  const netAssets = totalAssets - payLaterOutstanding - loanOutstanding;
 
   const pendingInstallments = installments.map((i) => ({
     id: i.id,
     debtId: i.debtId,
+    debtCode: i.debt?.code,
+    debtKind: i.debt?.kind,
     installmentNo: i.installmentNo,
     dueDate: i.dueDate,
     amount: i.amount,
+    paidAmount: i.paidAmount,
+    remaining: Math.max(0, i.amount - i.paidAmount),
     daysUntilDue: daysUntilDue(i.dueDate),
     status: i.status,
     purchase: i.debt?.purchase?.inventoryItem,
@@ -68,7 +74,12 @@ export async function dashboardData(period: Period = {}) {
   }));
 
   const currentMonth = new Date();
-  const payLaterDueThisMonth = installments.filter((item) => item.dueDate.getMonth() === currentMonth.getMonth() && item.dueDate.getFullYear() === currentMonth.getFullYear()).reduce((sum, item) => sum + item.amount, 0);
+  const dueThisMonth = (kind: string) =>
+    installments
+      .filter((item) => item.debt?.kind === kind && item.dueDate.getMonth() === currentMonth.getMonth() && item.dueDate.getFullYear() === currentMonth.getFullYear())
+      .reduce((sum, item) => sum + Math.max(0, item.amount - item.paidAmount), 0);
+  const payLaterDueThisMonth = dueThisMonth("PAYLATER");
+  const loanDueThisMonth = dueThisMonth("LOAN");
   const monthly = new Map<string, { month: string; omzet: number; profit: number; cashflow: number }>();
   const ensureMonth = (value: Date) => { const key = value.toISOString().slice(0, 7); if (!monthly.has(key)) monthly.set(key, { month: key, omzet: 0, profit: 0, cashflow: 0 }); return monthly.get(key)!; };
   sales.forEach((sale) => { const row = ensureMonth(sale.date); row.omzet += sale.salePrice; row.profit += sale.salePrice - sale.inventoryItem.purchasePrice - sale.inventoryItem.additionalCost - sale.sellingCost; });
@@ -76,7 +87,7 @@ export async function dashboardData(period: Period = {}) {
   incomes.forEach((item) => { ensureMonth(item.date).profit += item.amount; });
   ledger.forEach((item) => { ensureMonth(item.date).cashflow += item.income - item.expense; });
 
-  return { omzet, cogs, totalExpense, grossProfit, netProfit, cashBalance, inventoryValue: totalInventoryValue, unitValue: inventoryValue, accessoryValue, assetValue, totalAssets, netAssets, estimatedProfit, payLaterOutstanding, payLaterDueThisMonth, payLaterCount: installments.length, available: available.length, sold: inventory.filter((i) => i.status === InventoryStatus.SOLD).length, sales, expenses, ledger, monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), recentSales, pendingInstallments };}
+  return { omzet, cogs, totalExpense, grossProfit, netProfit, cashBalance, inventoryValue: totalInventoryValue, unitValue: inventoryValue, accessoryValue, assetValue, totalAssets, netAssets, estimatedProfit, payLaterOutstanding, loanOutstanding, payLaterDueThisMonth, loanDueThisMonth, payLaterCount: installments.length, available: available.length, sold: inventory.filter((i) => i.status === InventoryStatus.SOLD).length, sales, expenses, ledger, monthly: [...monthly.values()].sort((a, b) => a.month.localeCompare(b.month)), recentSales, pendingInstallments };}
 
 export function makeInvoice() { return `INV-${new Date().toISOString().slice(2, 10).replaceAll("-", "")}-${Math.floor(Math.random() * 900 + 100)}`; }
 export const ledgerLabel: Record<CashTransactionType, string> = { SALE: "Penjualan", PURCHASE: "Pembelian stok", EXPENSE: "Pengeluaran", OTHER_INCOME: "Pemasukan lain", PAYLATER_PAYMENT: "Bayar cicilan PayLater" };

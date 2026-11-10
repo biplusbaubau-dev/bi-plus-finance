@@ -25,7 +25,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ["Total aset", data.totalAssets],
     ["Total aset bersih", data.netAssets],
     ["Sisa PayLater", data.payLaterOutstanding],
-    ["Jatuh tempo bulan ini", data.payLaterDueThisMonth],
+    ["Sisa Utang PNM", data.loanOutstanding],
+    ["Jatuh tempo PayLater", data.payLaterDueThisMonth],
+    ["Jatuh tempo PNM", data.loanDueThisMonth],
   ];
   const filters = [["all", "Semua"], ["today", "Hari ini"], ["7d", "7 hari"], ["month", "Bulan ini"], ["last", "Bulan lalu"]];
 

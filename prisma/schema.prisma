@@ -98,9 +98,15 @@ enum InstallmentStatus {
   PAID
 }
 
+enum DebtKind {
+  PAYLATER
+  LOAN
+}
+
 model PayLaterDebt {
   id              String                @id @default(cuid())
   code            String                @unique
+  kind            DebtKind              @default(PAYLATER)
   debtName        String?
   totalLiability  Int
   tenorMonths     Int
@@ -121,6 +127,7 @@ model PayLaterInstallment {
   installmentNo   Int
   dueDate         DateTime
   amount          Int
+  paidAmount      Int               @default(0)
   status          InstallmentStatus @default(PENDING)
   paidAt          DateTime?
   debt            PayLaterDebt      @relation(fields: [debtId], references: [id], onDelete: Cascade)
