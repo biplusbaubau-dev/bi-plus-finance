@@ -60,7 +60,10 @@ export async function payShopeeBill(form: FormData) {
   const kind = text(form, "kind") === "LOAN" ? "LOAN" : "PAYLATER";
   // Pesan validasi dikirim balik lewat query string: `throw` di production
   // disembunyikan Next.js, jadi user tidak akan melihat alasannya.
-  const fail = (msg: string): never => redirect(`/transactions?err=${encodeURIComponent(msg)}`);
+  function fail(msg: string): never {
+    redirect(`/transactions?err=${encodeURIComponent(msg)}`);
+    throw new Error(msg);
+  }
   if (amount <= 0) fail("Nominal bayar harus lebih dari 0.");
   try {
     await prisma.$transaction(async (tx) => {
